@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import {getCinemeta, getSubtitle, modifyUrls, searchAndGetTMDB} from '../utils.js'
+import {formatStreamTitle, getCinemeta, getSubtitle, modifyUrls, searchAndGetTMDB} from '../utils.js'
 import {silentLogger} from '../test-support/helpers.js'
 
 test('modifyUrls recursively proxies HTTP URLs without mutating input', () => {
@@ -72,4 +72,48 @@ test('TMDB lookup rejects results from the wrong media type', async () => {
         null,
     )
     assert.equal(calls.length, 1)
+})
+
+
+test('formatStreamTitle strips leading حجم from size to avoid double label', () => {
+    const title = formatStreamTitle({
+        providerKey: 'aslmoviez',
+        quality: '1080p',
+        size: 'حجم: 2.5 GB',
+    })
+    assert.match(title, /💾 حجم: .*2\.5 GB/)
+    assert.doesNotMatch(title, /حجم:.*حجم/)
+    assert.equal(title.split('حجم').length - 1, 1)
+})
+
+test('formatStreamTitle strips size: prefix and normalizes whitespace', () => {
+    const title = formatStreamTitle({
+        providerKey: 'f2media',
+        quality: '720p',
+        size: 'size:  800 MB',
+    })
+    assert.match(title, /💾 حجم: .*800 MB/)
+    assert.doesNotMatch(title, /size:/i)
+})
+
+test('formatStreamTitle detects size from quality/URL when size field is missing', () => {
+    const title = formatStreamTitle({
+        providerKey: 'cinamatic',
+        quality: '1080p WEB-DL 1.8GB',
+        size: null,
+        url: 'https://cdn.example.com/Movie.1080p.x265.2.1GB.mkv',
+    })
+    assert.match(title, /💾 حجم:/)
+    // Prefer the first detectable size token from combined text
+    assert.match(title, /1\.8\s*GB|2\.1\s*GB/i)
+})
+
+test('formatStreamTitle omits size line when no size is available', () => {
+    const title = formatStreamTitle({
+        providerKey: 'digimovie',
+        quality: '1080p',
+        size: null,
+        extraText: 'BluRay x265',
+    })
+    assert.doesNotMatch(title, /💾 حجم/)
 })
