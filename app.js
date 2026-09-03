@@ -450,6 +450,20 @@ function streamCacheKey(title, type, season, episode) {
     return `${type}|${season ?? ''}|${episode ?? ''}|${String(title).toLowerCase().trim()}`
 }
 
+function extractYearHint(value) {
+    const m = String(value ?? '').match(/\b((?:19|20)\d{2})\b/)
+    return m ? Number(m[1]) : null
+}
+
+/** Trailing franchise number 1–20 (Toy Story 5), ignoring years. */
+function extractSequelHint(value) {
+    const noYear = String(value ?? '').replace(/\b(?:19|20)\d{2}\b/g, ' ')
+    const nums = [...noYear.matchAll(/\b(\d{1,2})\b/g)]
+        .map((x) => Number(x[1]))
+        .filter((n) => n >= 1 && n <= 20)
+    return nums.length ? nums[nums.length - 1] : null
+}
+
 function normalizeForMatch(value) {
     return String(value ?? '')
         .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '')
@@ -466,11 +480,26 @@ function normalizeForMatch(value) {
 function titlesMatch(a, b) {
     if (!a || !b) return false
     if (a === b) return true
-    if (a.includes(b) || b.includes(a)) return true
-    // compact form: "grandblue" vs "grand blue"
+    // Avoid "toy story" ≈ "toy story 5": only allow includes when lengths are close
+    // or neither side has a conflicting sequel number.
+    const sa = extractSequelHint(a)
+    const sb = extractSequelHint(b)
+    if (sa != null && sb != null && sa !== sb) return false
+    if (sa != null && sb == null && a.length > b.length + 2) {
+        // query has sequel, candidate is shorter base name — weak, still allow as candidate
+    }
+    if (a.includes(b) || b.includes(a)) {
+        const longer = a.length >= b.length ? a : b
+        const shorter = a.length >= b.length ? b : a
+        if (longer.length - shorter.length > 12 && !longer.startsWith(shorter)) return false
+        return true
+    }
     const ca = a.replace(/\s+/g, '')
     const cb = b.replace(/\s+/g, '')
-    if (ca.length > 3 && cb.length > 3 && (ca.includes(cb) || cb.includes(ca))) return true
+    if (ca.length > 3 && cb.length > 3 && (ca.includes(cb) || cb.includes(ca))) {
+        if (sa != null && sb != null && sa !== sb) return false
+        return true
+    }
     const ta = a.split(' ').filter((t) => t.length > 2)
     const tb = b.split(' ').filter((t) => t.length > 2)
     if (!ta.length || !tb.length) return false
@@ -478,6 +507,49 @@ function titlesMatch(a, b) {
     const hits = ta.filter((t) => setB.has(t)).length
     const need = Math.min(2, ta.length, tb.length)
     return hits >= Math.max(1, need === 2 && Math.min(ta.length, tb.length) === 1 ? 1 : need)
+}
+
+/** Higher is better. opts: { year, imdbId } from Cinemeta/TMDB. */
+function scoreTitleCandidate(result, cleanTitle, opts = {}) {
+    const rawName = String(result?.name ?? '')
+    const n = normalizeForMatch(rawName)
+    if (!n || !cleanTitle) return -100
+    let score = 0
+    if (n === cleanTitle) score += 100
+    else if (n.includes(cleanTitle) || cleanTitle.includes(n)) score += 40
+    else {
+        const ta = cleanTitle.split(' ').filter((t) => t.length > 2)
+        const tb = n.split(' ').filter((t) => t.length > 2)
+        const setB = new Set(tb)
+        const hits = ta.filter((t) => setB.has(t)).length
+        if (!hits) return -50
+        score += hits * 12
+    }
+    // Prefer similar length (exact franchise entry)
+    score -= Math.min(30, Math.abs(n.length - cleanTitle.length))
+
+    const wantSeq = extractSequelHint(cleanTitle)
+    const gotSeq = extractSequelHint(n)
+    if (wantSeq != null && gotSeq != null) {
+        score += wantSeq === gotSeq ? 50 : -60
+    } else if (wantSeq != null && gotSeq == null) {
+        score -= 25 // provider listed base "Toy Story" for "Toy Story 5"
+    } else if (wantSeq == null && gotSeq != null) {
+        score -= 20
+    }
+
+    const wantYear = opts.year != null ? Number(opts.year) : extractYearHint(cleanTitle)
+    const gotYear = extractYearHint(rawName)
+    if (wantYear && gotYear) {
+        score += wantYear === gotYear ? 35 : -45
+    }
+
+    const wantImdb = opts.imdbId && /^tt\d+$/.test(String(opts.imdbId)) ? String(opts.imdbId) : null
+    const gotImdb = result.imdbId || result.imdb_id || null
+    if (wantImdb && gotImdb && /^tt\d+$/.test(String(gotImdb))) {
+        score += String(gotImdb) === wantImdb ? 80 : -80
+    }
+    return score
 }
 
 function searchQueryVariants(title) {
@@ -502,40 +574,48 @@ function searchQueryVariants(title) {
     })
 }
 
-function bestTitleMatch(results, type, cleanTitle) {
+function bestTitleMatch(results, type, cleanTitle, opts = {}) {
     const list = Array.isArray(results) ? results : []
-    const typed = list.filter((r) => !r.type || r.type === type)
-    const candidates = typed.filter((r) => titlesMatch(normalizeForMatch(r.name), cleanTitle))
-    if (candidates.length) {
-        candidates.sort((a, b) => {
-            const na = normalizeForMatch(a.name)
-            const nb = normalizeForMatch(b.name)
-            const score = (n) => {
-                if (n === cleanTitle) return 0
-                if (n.includes(cleanTitle) || cleanTitle.includes(n)) return 1
-                return 2
-            }
-            return score(na) - score(nb) || na.length - nb.length
-        })
-        return candidates[0]
+    const typed = list.filter((r) => r && r.id != null && (!r.type || r.type === type))
+    if (!typed.length) return null
+
+    const scored = typed.map((r) => ({
+        r,
+        s: scoreTitleCandidate(r, cleanTitle, opts),
+    })).sort((a, b) => b.s - a.s || normalizeForMatch(a.r.name).length - normalizeForMatch(b.r.name).length)
+
+    const best = scored[0]
+    // Strong enough match
+    if (best && best.s >= 25) return best.r
+
+    // Single search hit from provider — keep old permissive behavior for Persian-only pages
+    if (typed.length === 1 && best && best.s >= 0) return best.r
+
+    // Multiple weak hits: take best only if clearly better than runner-up and not hostile
+    if (best && best.s >= 10) {
+        const second = scored[1]?.s ?? -999
+        if (best.s >= second + 15) return best.r
     }
-    // Iranian sites often return Persian-only titles. normalizeForMatch strips
-    // Persian script → empty → token match fails. If the provider's own search
-    // returned rows for our query, trust the first same-type hit.
-    if (typed.length === 1) return typed[0]
-    if (typed.length > 1 && cleanTitle) {
-        const latin = cleanTitle.split(' ').filter((t) => t.length > 2)
+
+    // Soft latin token fallback (Persian titles) — never prefer conflicting sequel
+    if (cleanTitle) {
+        const wantSeq = extractSequelHint(cleanTitle)
+        const latin = cleanTitle.split(' ').filter((t) => t.length > 2 && !/^\d+$/.test(t))
         const soft = typed.find((r) => {
             const raw = String(r.name ?? '').toLowerCase()
-            return latin.some((t) => raw.includes(t))
+            if (!latin.some((tok) => raw.includes(tok))) return false
+            if (wantSeq != null) {
+                const got = extractSequelHint(normalizeForMatch(r.name))
+                if (got != null && got !== wantSeq) return false
+            }
+            return true
         })
         if (soft) return soft
-        return typed[0]
     }
     return null
 }
 
-async function streamsByTitle(title, type, season, episode, providers) {
+async function streamsByTitle(title, type, season, episode, providers, matchOpts = {}) {
     const cleanTitle = normalizeForMatch(title)
     const cacheKey = streamCacheKey(cleanTitle, type, season, episode)
     const cached = streamTitleCache.get(cacheKey)
@@ -555,7 +635,7 @@ async function streamsByTitle(title, type, season, episode, providers) {
                 let match = null
                 for (const q of queries) {
                     const results = await provider.search(q)
-                    match = bestTitleMatch(results, type, cleanTitle)
+                    match = bestTitleMatch(results, type, cleanTitle, matchOpts)
                     if (match) break
                 }
                 if (!match) {
@@ -624,9 +704,16 @@ async function imdbStreamResponse(type, id, providers, services, env, httpClient
         return {streams: await torrentPromise}
     }
 
-    const title = await getCinemetaName(type, parsed.imdbId, services)
+    const cinemeta = await services.getCinemeta(type, parsed.imdbId)
+    const title = cinemeta?.meta?.name ?? null
+    const yearHint = extractYearHint(cinemeta?.meta?.releaseInfo)
+        || extractYearHint(cinemeta?.meta?.year)
+        || extractYearHint(title)
     const streams = title
-        ? await streamsByTitle(title, type, parsed.season, parsed.episode, providers)
+        ? await streamsByTitle(title, type, parsed.season, parsed.episode, providers, {
+            year: yearHint,
+            imdbId: parsed.imdbId,
+        })
         : []
     // Iranian providers always come first — torrent results are appended,
     // never prepended, regardless of whether Iranian results exist.
@@ -697,7 +784,10 @@ async function tmdbStreamResponse(type, id, providers, httpClient, apiKey, env, 
     const torrentPromise = getTorrentStreams(type, torrentId, env, httpClient, logger).catch(() => [])
 
     const streams = title
-        ? await streamsByTitle(title, type, parsed.season, parsed.episode, providers)
+        ? await streamsByTitle(title, type, parsed.season, parsed.episode, providers, {
+            year: extractYearHint(details?.year) || extractYearHint(details?.releaseDate) || extractYearHint(title),
+            imdbId: imdbId || null,
+        })
         : []
     return {streams: [...streams, ...await torrentPromise]}
 }
