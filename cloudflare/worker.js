@@ -421,9 +421,77 @@ async function getCinemetaName(type, imdbId, services) {
     return cinemeta?.meta?.name ?? null
 }
 
+function extractYearHint(value) {
+    const m = String(value ?? '').match(/\b((?:19|20)\d{2})\b/)
+    return m ? Number(m[1]) : null
+}
+
+function extractSequelHint(value) {
+    const noYear = String(value ?? '').replace(/\b(?:19|20)\d{2}\b/g, ' ')
+    const nums = [...noYear.matchAll(/\b(\d{1,2})\b/g)]
+        .map((x) => Number(x[1]))
+        .filter((n) => n >= 1 && n <= 20)
+    return nums.length ? nums[nums.length - 1] : null
+}
+
 function stripPersian(s) {
     return String(s || '').replace(/[\u0600-\u06FF]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
 }
+
+function scoreWorkerCandidate(result, cleanTitle, opts = {}) {
+    const rawName = String(result?.name ?? '')
+    const n = stripPersian(rawName).replace(/[^\w\s]/g, ' ').replace(/\b(19|20)\d{2}\b/g, ' ').replace(/\s+/g, ' ').trim()
+    if (!n || !cleanTitle) return -100
+    let score = 0
+    if (n === cleanTitle) score += 100
+    else if (n.includes(cleanTitle) || cleanTitle.includes(n)) score += 40
+    else {
+        const ta = cleanTitle.split(' ').filter((x) => x.length > 2)
+        const tb = n.split(' ').filter((x) => x.length > 2)
+        const setB = new Set(tb)
+        const hits = ta.filter((x) => setB.has(x)).length
+        if (!hits) return -50
+        score += hits * 12
+    }
+    score -= Math.min(30, Math.abs(n.length - cleanTitle.length))
+    const wantSeq = extractSequelHint(cleanTitle)
+    const gotSeq = extractSequelHint(n)
+    if (wantSeq != null && gotSeq != null) score += wantSeq === gotSeq ? 50 : -60
+    else if (wantSeq != null && gotSeq == null) score -= 25
+    else if (wantSeq == null && gotSeq != null) score -= 20
+    const wantYear = opts.year != null ? Number(opts.year) : extractYearHint(cleanTitle)
+    const gotYear = extractYearHint(rawName)
+    if (wantYear && gotYear) score += wantYear === gotYear ? 35 : -45
+    const wantImdb = opts.imdbId && /^tt\d+$/.test(String(opts.imdbId)) ? String(opts.imdbId) : null
+    const gotImdb = result.imdbId || result.imdb_id || null
+    if (wantImdb && gotImdb && /^tt\d+$/.test(String(gotImdb))) {
+        score += String(gotImdb) === wantImdb ? 80 : -80
+    }
+    return score
+}
+
+function pickBestWorkerMatch(typed, cleanTitle, tokens, opts = {}) {
+    if (!typed.length) return null
+    const scored = typed.map((r) => ({r, s: scoreWorkerCandidate(r, cleanTitle, opts)}))
+        .sort((a, b) => b.s - a.s)
+    const best = scored[0]
+    if (best && best.s >= 25) return best.r
+    if (typed.length === 1 && best && best.s >= 0) return best.r
+    if (best && best.s >= 10 && best.s >= (scored[1]?.s ?? -999) + 15) return best.r
+    const wantSeq = extractSequelHint(cleanTitle)
+    const soft = typed.find((r) => {
+        const rawN = String(r.name || '').toLowerCase()
+        if (!(tokens || []).some((tok) => rawN.includes(tok))) return false
+        if (wantSeq != null) {
+            const got = extractSequelHint(stripPersian(r.name))
+            if (got != null && got !== wantSeq) return false
+        }
+        return true
+    })
+    return soft || null
+}
+
+
 
 // Match Vercel: short in-memory stream cache (same isolate / warm Worker)
 const STREAM_CACHE_TTL_MS = 90_000
@@ -446,7 +514,7 @@ function withProviderTimeout(promise, ms, key) {
     })
 }
 
-async function streamsByTitle(title, type, season, episode, providers, env = {}) {
+async function streamsByTitle(title, type, season, episode, providers, env = {}, matchOpts = {}) {
     const cleanTitle = stripPersian(title)
     const cacheKey = streamCacheKey(cleanTitle, type, season, episode)
     const cached = streamTitleCache.get(cacheKey)
@@ -471,16 +539,7 @@ async function streamsByTitle(title, type, season, episode, providers, env = {})
                 if (!Array.isArray(results) || !results.length) continue
                 const typed = results.filter((r) => r && r.type === type && r.id != null)
                 if (!typed.length) continue
-                match = typed.find((r) => {
-                    const cn = stripPersian(r.name)
-                    return cn && cleanTitle && (cn.includes(cleanTitle) || cleanTitle.includes(cn))
-                })
-                if (!match && typed.length) {
-                    match = typed.find((r) => {
-                        const rawN = String(r.name || '').toLowerCase()
-                        return tokens.some((t) => rawN.includes(t))
-                    }) || typed[0]
-                }
+                match = pickBestWorkerMatch(typed, cleanTitle, tokens, matchOpts)
                 if (match) break
             }
             if (!match) return {key: provider.key, streams: []}
@@ -526,7 +585,7 @@ async function imdbStreamResponse(type, id, providers, services, env, httpClient
             title = await getTMDBTitle(type, parsed.imdbId, httpClient, env.TMDB_API_KEY, logger)
         } catch { /* ignore */ }
     }
-    const streams = title ? await streamsByTitle(title, type, parsed.season, parsed.episode, providers, env) : []
+    const streams = title ? await streamsByTitle(title, type, parsed.season, parsed.episode, providers, env, {imdbId: parsed.imdbId, year: extractYearHint(title)}) : []
     let torrent = []
     try { torrent = await torrentPromise } catch { torrent = [] }
     return json({streams: [...streams, ...torrent]})
