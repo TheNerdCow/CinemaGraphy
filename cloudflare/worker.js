@@ -27,7 +27,7 @@ import {createWorkerProxyConfig, handleProxyRequest} from './proxy.js'
 import {decodeAddonConfig, mergeEnv} from './config.js'
 
 const ADDON_PREFIX = 'ip'
-const ADDON_VERSION = '3.2.10'
+const ADDON_VERSION = '3.2.11'
 
 const CATALOGS = [
     {key: 'f2media', name: 'F2Media', catalogType: 'movies'},
@@ -414,9 +414,13 @@ async function metaResponse(route, providers, services, env, requestUrl, logger,
                     poster = a.posterImage?.large || a.posterImage?.medium || null
                     background = a.coverImage?.large || null
                     if (a.canonicalTitle || a.titles?.en_jp) {
-                        // prefer Kitsu title if page title is weak
                         const kt = a.titles?.en_jp || a.canonicalTitle
-                        if (kt && (title.length < 4 || /^[a-z0-9 -]+$/i.test(title))) {
+                        // Never replace slug/title with unrelated Kitsu hit (first result is often wrong)
+                        const qTokens = String(title).toLowerCase().split(/[^a-z0-9]+/).filter((x) => x.length > 2)
+                        const kTokens = String(kt).toLowerCase().split(/[^a-z0-9]+/).filter((x) => x.length > 2)
+                        const hits = qTokens.filter((x) => kTokens.includes(x)).length
+                        const similar = hits >= Math.min(2, qTokens.length) || String(kt).toLowerCase().includes(qTokens[0] || '___')
+                        if (kt && similar && (title.length < 4 || /^[a-z0-9 -]+$/i.test(title))) {
                             movieData.title = kt
                         }
                     }
