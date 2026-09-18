@@ -49,6 +49,49 @@ function decodeAnimexGoToken(href) {
     }
 }
 
+function collectAnimexGoTokensFromHtml(html) {
+    const tokens = []
+    const seen = new Set()
+    const re = /href\s*=\s*["']([^"']*animex_go=[^"']+)["']/gi
+    let m
+    while ((m = re.exec(String(html || '')))) {
+        const token = decodeAnimexGoToken(m[1])
+        if (!token?.target) continue
+        const action = String(token.action || '').toLowerCase()
+        if (action && action !== 'download' && action !== 'stream') continue
+        const key = String(token.target)
+        if (seen.has(key)) continue
+        seen.add(key)
+        tokens.push(token)
+    }
+    return tokens
+}
+
+function titleFromAnimexHtml(html, path) {
+    const text = String(html || '')
+    const og = text.match(/property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
+        || text.match(/content=["']([^"']+)["'][^>]*property=["']og:title["']/i)
+    let title = normalizeText(og?.[1] || '')
+        .replace(/\s*[–—|-]\s*انیمکس\s*$/i, '')
+        .replace(/\s*[–—|-]\s*Animex\s*$/i, '')
+        .trim()
+    if (!title || title === 'انیمکس') {
+        const ent = text.match(/class=["'][^"']*entry-title[^"']*["'][^>]*>\s*([^<]{2,120})</i)
+        title = normalizeText(ent?.[1] || '')
+    }
+    if (!title || title === 'انیمکس') {
+        const doc = text.match(/<title[^>]*>([^<]+)/i)
+        title = normalizeText(doc?.[1] || '')
+            .replace(/\s*[–—|-]\s*انیمکس\s*$/i, '')
+            .replace(/\s*[–—|-]\s*Animex\s*$/i, '')
+            .trim()
+    }
+    if (!title || title === 'انیمکس') {
+        title = String(path || '').split('/').filter(Boolean).pop()?.replace(/-/g, ' ') || 'Anime'
+    }
+    return title
+}
+
 function isDirectVideoUrl(url) {
     return /\.(mkv|mp4|avi|m4v|mov)(\?|$)/i.test(String(url ?? ''))
 }
@@ -413,9 +456,16 @@ export default class Animex extends HtmlSource {
         }
 
         try {
-            let $ = await this.fetchDocument(path)
-            if (!$) {
-                // CF/Worker: fetchDocument can fail; raw GET + cheerio
+            let $ = null
+            let rawHtml = ''
+            try {
+                $ = await this.fetchDocument(path)
+            } catch { $ = null }
+            if ($) {
+                try { rawHtml = $.root().html() || '' } catch { rawHtml = '' }
+            }
+            if (!$ || rawHtml.length < 200) {
+                // CF/Worker: fetchDocument can fail; raw GET (+ optional cheerio)
                 try {
                     const url = this.endpoint(path)
                     const res = await this.httpClient.get(url, {
@@ -427,15 +477,19 @@ export default class Animex extends HtmlSource {
                     })
                     const html = typeof res.data === 'string' ? res.data : ''
                     if (html && html.length > 200) {
-                        const {load} = await import('cheerio')
-                        $ = load(html)
+                        rawHtml = html
+                        try {
+                            const {load} = await import('cheerio')
+                            $ = load(html)
+                        } catch {
+                            $ = null
+                        }
                     }
                 } catch (e) {
                     this.logger?.warn?.({err: e?.message}, 'Animex raw fetch failed')
                 }
             }
-            if (!$) {
-                // Last resort: title from slug so meta endpoint can still open
+            if (!$ && rawHtml.length < 200) {
                 const slug = path.split('/').filter(Boolean).pop() || ''
                 return {
                     path,
@@ -444,6 +498,37 @@ export default class Animex extends HtmlSource {
                     isSeries: true,
                     pageSeason: null,
                     links: [],
+                }
+            }
+            // Cheerio optional: regex path still works with rawHtml only
+            if (!$ && rawHtml) {
+                const titleOnly = titleFromAnimexHtml(rawHtml, path)
+                const pageSeason = extractSeasonNumber(titleOnly, path)
+                const downloadTokens = collectAnimexGoTokensFromHtml(rawHtml)
+                const links = []
+                const externalFallbacks = []
+                for (const token of downloadTokens) {
+                    const groupLabel = [token.group_title, token.quality].filter(Boolean).join(' ')
+                    if (!token.target) continue
+                    const season = extractSeasonNumber(token.group_title, token.quality, titleOnly) ?? pageSeason ?? 1
+                    let episode = extractEpisodeNumber(token.target) || extractEpisodeNumber(groupLabel) || 1
+                    externalFallbacks.push({
+                        url: token.target,
+                        externalUrl: token.target,
+                        quality: groupLabel || null,
+                        title: groupLabel || 'Animex',
+                        season,
+                        episode,
+                        behaviorHints: {notWebReady: true},
+                    })
+                }
+                return {
+                    path,
+                    title: titleOnly,
+                    imdbId: null,
+                    isSeries: true,
+                    pageSeason,
+                    links: uniqueLinks([...links, ...externalFallbacks]),
                 }
             }
 
@@ -490,7 +575,17 @@ export default class Animex extends HtmlSource {
                 downloadTokens.push(token)
             })
 
-            const links = []
+            
+            // Always merge regex tokens from raw HTML (cheerio can miss some on CF)
+            for (const token of collectAnimexGoTokensFromHtml(rawHtml || '')) {
+                if (!token?.target || seenTargets.has(String(token.target))) continue
+                const action = String(token.action || '').toLowerCase()
+                if (action && action !== 'download' && action !== 'stream') continue
+                seenTargets.add(String(token.target))
+                downloadTokens.push(token)
+            }
+
+const links = []
             const directoryJobs = []
             const externalFallbacks = []
 

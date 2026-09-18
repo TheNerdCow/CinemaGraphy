@@ -33,10 +33,40 @@ export function animexCatalogDisplayName(lang = 'fa') {
 
 function cleanTitle(raw) {
   return String(raw || '')
-    .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => { try { return String.fromCharCode(Number(n)) } catch { return '' } })
     .replace(/<[^>]+>/g, '')
     .replace(/^دانلود\s+(انیمه|سریال|فیلم)\s+/i, '')
     .replace(/\s+/g, ' ').trim()
+}
+
+function pickPosterUrl(chunk, base) {
+  const text = String(chunk || '')
+  const candidates = []
+  const srcset = text.match(/srcset=["']([^"']+)["']/i)
+  if (srcset) {
+    for (const part of srcset[1].split(',')) {
+      const u = part.trim().split(/\s+/)[0]
+      if (u) candidates.push(u)
+    }
+  }
+  for (const re of [
+    /data-src=["']([^"']+)["']/i,
+    /data-lazy-src=["']([^"']+)["']/i,
+    /<img[^>]+src=["']([^"']+)["']/i,
+  ]) {
+    const m = text.match(re)
+    if (m) candidates.push(m[1])
+  }
+  for (const raw of candidates) {
+    if (!raw || raw.startsWith('data:')) continue
+    if (raw.includes('_files/')) continue
+    try {
+      const abs = new URL(raw, base).toString()
+      if (/^https?:\/\//i.test(abs)) return abs
+    } catch { /* next */ }
+  }
+  return null
 }
 
 function latinQuery(title, slug) {
@@ -111,15 +141,13 @@ function parseListingHtml(html, base) {
       || chunk.match(/href=["'](\/anime\/([^/"']+)\/?)["']/i)
     if (!href) continue
     const slug = href[2]
-    const imgM = chunk.match(/<img[^>]+src=["']([^"']+)["'][^>]*class=["'][^"']*wp-post-image/i)
-      || chunk.match(/class=["'][^"']*wp-post-image[^"']*["'][^>]*src=["']([^"']+)/i)
-      || chunk.match(/<img[^>]+src=["']([^"']+)["']/i)
+    const poster = pickPosterUrl(chunk, base)
     const titleM = chunk.match(/entry-title[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i)
-      || chunk.match(/<h[123][^>]*>([\s\S]*?)<\/h[123]>/i)
       || chunk.match(/alt=["']([^"']+)["']/i)
+      || chunk.match(/<h[123][^>]*>([\s\S]*?)<\/h[123]>/i)
     let title = titleM ? cleanTitle(titleM[1]) : ''
     if (!title || title === 'انیمکس') title = slug.replace(/-/g, ' ')
-    push(slug, title, imgM ? imgM[1] : null)
+    push(slug, title, poster)
   }
 
   if (!items.length) {
@@ -185,16 +213,20 @@ async function scrapeAnimexList(env, httpClient) {
     }
   }
 
-  await Promise.all(items.slice(0, 15).map(async (it) => {
-    try {
-      const k = await kitsuEnrich(it.query || it.name, httpClient)
-      if (!k) return
-      if (k.description) it.description = k.description
-      if (k.poster && !it.poster) it.poster = k.poster
-      if (k.background) it.background = k.background
-      if (k.year) it.year = k.year
-    } catch { /* ignore */ }
-  }))
+  const needArt = items.filter((it) => !it.poster)
+  const batch = needArt.slice(0, 40)
+  for (let i = 0; i < batch.length; i += 8) {
+    await Promise.all(batch.slice(i, i + 8).map(async (it) => {
+      try {
+        const k = await kitsuEnrich(it.query || it.name, httpClient)
+        if (!k) return
+        if (k.description && !it.description) it.description = k.description
+        if (k.poster && !it.poster) it.poster = k.poster
+        if (k.background && !it.background) it.background = k.background
+        if (k.year && !it.year) it.year = k.year
+      } catch { /* ignore */ }
+    }))
+  }
 
   listCache.set(cacheKey, { at: Date.now(), items })
   return items
