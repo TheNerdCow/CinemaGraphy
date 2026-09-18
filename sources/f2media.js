@@ -475,12 +475,22 @@ export default class F2Media extends HtmlSource {
     }
 
     getSeriesLinks(movieData, videoId) {
-        // videoId = `${pageId}:${season}:${episode}` — pageId is base64url (no ':')
-        const parts = String(videoId ?? '').split(':')
-        const episodeText = parts.length >= 3 ? parts[parts.length - 1] : ''
-        const seasonText = parts.length >= 3 ? parts[parts.length - 2] : ''
-        const season = Number(seasonText)
-        const episode = Number(episodeText)
+        // videoId forms: `pageId:season:episode` | `tmdb:123:1:2` | `1:2` | trailing from stream id
+        const parts = String(videoId ?? '').split(':').filter((x) => x !== '')
+        let season = NaN
+        let episode = NaN
+        if (parts.length >= 2) {
+            episode = Number(parts[parts.length - 1])
+            season = Number(parts[parts.length - 2])
+        }
+        // if second-last is not a season number (e.g. tmdb id), scan from end for two ints
+        if (!Number.isInteger(season) || !Number.isInteger(episode)) {
+            const nums = parts.map((x) => Number(x)).filter((n) => Number.isInteger(n))
+            if (nums.length >= 2) {
+                episode = nums[nums.length - 1]
+                season = nums[nums.length - 2]
+            }
+        }
         if (!Number.isInteger(season) || !Number.isInteger(episode) || season < 0 || episode < 1) {
             return []
         }
