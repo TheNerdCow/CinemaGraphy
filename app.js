@@ -56,7 +56,7 @@ import {createRateLimitMiddleware} from './lib/rate-limit.js'
 import {registerAdminRoutes} from './lib/admin.js'
 
 export const ADDON_PREFIX = 'ip'
-export const ADDON_VERSION = '3.2.8'
+export const ADDON_VERSION = '3.2.9'
 
 // Re-export config helpers for tests / external consumers
 export {decodeAddonConfig, mergeEnv, DEFAULT_IPTV_BRIDGE_MANIFEST_URL, isConfigFlagOn}
@@ -377,17 +377,72 @@ export async function getProvidersStatus(env = process.env, httpClient = axios) 
     return payload
 }
 
+
+/** Build Stremio videos list from provider download links (season/episode). */
+function videosFromProviderLinks(links) {
+    const videos = []
+    const seen = new Set()
+    for (const link of Array.isArray(links) ? links : []) {
+        const s = Number(link.season)
+        const e = Number(link.episode)
+        const season = Number.isInteger(s) && s > 0 ? s : 1
+        const episode = Number.isInteger(e) && e > 0 ? e : 0
+        if (!episode) continue
+        const key = `${season}:${episode}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        videos.push({
+            id: `${season}:${episode}`,
+            title: `S${season}E${String(episode).padStart(2, '0')}`,
+            season,
+            episode,
+        })
+    }
+    videos.sort((a, b) => a.season - b.season || a.episode - b.episode)
+    return videos
+}
+
+/**
+ * Prefer richer episode list from provider links over thin TMDB/Cinemeta lists.
+ */
+function mergeSeriesVideos(existingVideos, links) {
+    const fromLinks = videosFromProviderLinks(links)
+    const existing = Array.isArray(existingVideos) ? existingVideos.filter((v) => v?.id) : []
+    if (!fromLinks.length) return existing
+    if (!existing.length) return fromLinks
+    if (fromLinks.length >= existing.length) return fromLinks
+    return existing
+}
+
+/** Split `ip{provider}___{item}` and optional `___video` or trailing `:S:E` on item. */
+function splitProviderAddonId(id, providers, prefix, sep) {
+    const raw = String(id ?? '')
+    const parts = raw.split(sep)
+    const provider = providers.find((item) => parts[0] === `${prefix}${item.key}`)
+    if (!provider || !parts[1]) return null
+    let providerItemId = parts[1]
+    let videoId = parts.slice(2).join(sep) || null
+    // Stremio sometimes uses ipf2media___PAGEID:1:2 (colon episode on item id)
+    if (!videoId) {
+        const m = String(providerItemId).match(/^(.*?):(\d+):(\d+)$/)
+        if (m) {
+            providerItemId = m[1]
+            videoId = `${m[2]}:${m[3]}`
+        }
+    } else {
+        // videoId may be tmdb:123:1:2 — keep as-is for getSeriesLinks
+        const m = String(providerItemId).match(/^(.*?):(\d+):(\d+)$/)
+        if (m && !/^\d+:\d+$/.test(videoId)) {
+            // only strip if item id itself has trailing S:E
+            providerItemId = m[1]
+        }
+    }
+    return {provider, providerItemId, videoId}
+}
+
+
 export function parseAddonId(id, providers) {
-    const parts = String(id ?? '').split(ID_SEPARATOR)
-    const provider = providers.find((item) => parts[0] === `${ADDON_PREFIX}${item.key}`)
-    if (!provider || !parts[1]) {
-        return null
-    }
-    return {
-        provider,
-        providerItemId: parts[1],
-        videoId: parts.slice(2).join(ID_SEPARATOR) || null,
-    }
+    return splitProviderAddonId(id, providers, ADDON_PREFIX, ID_SEPARATOR)
 }
 
 function findCatalogProvider(catalogId, providers) {
@@ -1504,7 +1559,7 @@ addon.get(/^\/api\/tmdb-image\/([^/]+)\/(.+)$/, async (req, res) => {
                 )
             }
             if (req.params.type === 'series') {
-                const videos = Array.isArray(result.meta.videos) ? result.meta.videos : []
+                const videos = mergeSeriesVideos(result.meta.videos, movieData?.links)
                 result.meta.videos = videos
                     .filter((video) => video?.id)
                     .map((video) => ({
