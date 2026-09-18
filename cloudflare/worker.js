@@ -27,7 +27,7 @@ import {createWorkerProxyConfig, handleProxyRequest} from './proxy.js'
 import {decodeAddonConfig, mergeEnv} from './config.js'
 
 const ADDON_PREFIX = 'ip'
-const ADDON_VERSION = '3.2.8'
+const ADDON_VERSION = '3.2.9'
 
 const CATALOGS = [
     {key: 'f2media', name: 'F2Media', catalogType: 'movies'},
@@ -109,11 +109,61 @@ export function createWorkerProviders({env = {}, logger = console, httpClient} =
     ]
 }
 
-export function parseWorkerAddonId(id, providers) {
-    const parts = String(id ?? '').split(ID_SEPARATOR)
-    const provider = providers.find((item) => parts[0] === `${ADDON_PREFIX}${item.key}`)
+
+function videosFromProviderLinks(links) {
+    const videos = []
+    const seen = new Set()
+    for (const link of Array.isArray(links) ? links : []) {
+        const s = Number(link.season)
+        const e = Number(link.episode)
+        const season = Number.isInteger(s) && s > 0 ? s : 1
+        const episode = Number.isInteger(e) && e > 0 ? e : 0
+        if (!episode) continue
+        const key = `${season}:${episode}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        videos.push({
+            id: `${season}:${episode}`,
+            title: `S${season}E${String(episode).padStart(2, '0')}`,
+            season,
+            episode,
+        })
+    }
+    videos.sort((a, b) => a.season - b.season || a.episode - b.episode)
+    return videos
+}
+
+function mergeSeriesVideos(existingVideos, links) {
+    const fromLinks = videosFromProviderLinks(links)
+    const existing = Array.isArray(existingVideos) ? existingVideos.filter((v) => v?.id) : []
+    if (!fromLinks.length) return existing
+    if (!existing.length) return fromLinks
+    if (fromLinks.length >= existing.length) return fromLinks
+    return existing
+}
+
+function splitProviderAddonId(id, providers, prefix, sep) {
+    const raw = String(id ?? '')
+    const parts = raw.split(sep)
+    const provider = providers.find((item) => parts[0] === `${prefix}${item.key}`)
     if (!provider || !parts[1]) return null
-    return {provider, providerItemId: parts[1], videoId: parts.slice(2).join(ID_SEPARATOR) || null}
+    let providerItemId = parts[1]
+    let videoId = parts.slice(2).join(sep) || null
+    if (!videoId) {
+        const m = String(providerItemId).match(/^(.*?):(\d+):(\d+)$/)
+        if (m) {
+            providerItemId = m[1]
+            videoId = `${m[2]}:${m[3]}`
+        }
+    } else {
+        const m = String(providerItemId).match(/^(.*?):(\d+):(\d+)$/)
+        if (m) providerItemId = m[1]
+    }
+    return {provider, providerItemId, videoId}
+}
+
+export function parseWorkerAddonId(id, providers) {
+    return splitProviderAddonId(id, providers, ADDON_PREFIX, ID_SEPARATOR)
 }
 
 function publicOrigin(request, env) {
@@ -396,7 +446,7 @@ async function metaResponse(route, providers, services, env, requestUrl, logger,
         }
 
         if (route.type === 'series') {
-            const videos = Array.isArray(result.meta.videos) ? result.meta.videos : []
+            const videos = mergeSeriesVideos(result.meta.videos, movieData?.links)
             result.meta.videos = videos.filter((v) => v?.id).map((v) => ({...v, id: `${ADDON_PREFIX}${parsedId.provider.providerID}${parsedId.providerItemId}${ID_SEPARATOR}${v.id}`}))
             result.meta.id = route.id
         } else {
