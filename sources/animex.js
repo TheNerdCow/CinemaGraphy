@@ -449,26 +449,45 @@ export default class Animex extends HtmlSource {
 
             const imdbHref = $('a[href*="imdb.com/title/tt"]').first().attr('href') ?? ''
             const imdbId = imdbHref.match(/\/title\/(tt\d+)/)?.[1] ?? null
-            let title = normalizeText($('h1').first().text())
-            if (!title || title === 'انیمکس' || title === 'Animex') {
-                title = normalizeText($('meta[property="og:title"]').attr('content'))
-                    || normalizeText($('.entry-title, .post-title').first().text())
-                    || path.split('/').filter(Boolean).pop()?.replace(/-/g, ' ')
-                    || title
+            // Site uses <h1>انیمکس</h1> on every page — prefer og:title / entry-title / <title>
+            const ogTitle = normalizeText($('meta[property="og:title"]').attr('content'))
+                .replace(/\s*[–—|-]\s*انیمکس\s*$/i, '')
+                .replace(/\s*[–—|-]\s*Animex\s*$/i, '')
+                .trim()
+            const entryTitle = normalizeText($('.entry-title, .post-title, h1.entry-title').first().text())
+                .replace(/\s*[–—|-]\s*انیمکس\s*$/i, '')
+                .trim()
+            const docTitle = normalizeText($('title').first().text())
+                .replace(/\s*[–—|-]\s*انیمکس\s*$/i, '')
+                .replace(/\s*[–—|-]\s*Animex\s*$/i, '')
+                .trim()
+            const h1 = normalizeText($('h1').first().text())
+            let title = ogTitle || entryTitle || docTitle || ''
+            if (!title || title === 'انیمکس' || title === 'Animex' || /^دانلود\s/i.test(title)) {
+                title = entryTitle || docTitle || ogTitle || (h1 !== 'انیمکس' && h1 !== 'Animex' ? h1 : '') ||
+                    path.split('/').filter(Boolean).pop()?.replace(/-/g, ' ') ||
+                    title
             }
             const resolvedType = pathType(path) ?? type
             const pageSeason = extractSeasonNumber(title, path)
 
             const downloadTokens = []
+            const seenTargets = new Set()
             $('a[href*="animex_go="]').each((_, anchor) => {
                 const label = normalizeText($(anchor).text())
-                if (/پخش/.test(label)) {
+                const token = decodeAnimexGoToken($(anchor).attr('href'))
+                if (!token?.target) return
+                // Site now uses action "stream" for download/dir buttons (was "download").
+                // Keep online-player-only buttons out when label is pure "پخش" without dir/file.
+                const action = String(token.action || '').toLowerCase()
+                if (action && action !== 'download' && action !== 'stream') return
+                if (/^پخش(\s|$)/.test(label) && !isDirectoryUrl(token.target) && !isDirectVideoUrl(token.target)) {
                     return
                 }
-                const token = decodeAnimexGoToken($(anchor).attr('href'))
-                if (token?.action === 'download' && token.target) {
-                    downloadTokens.push(token)
-                }
+                const key = String(token.target)
+                if (seenTargets.has(key)) return
+                seenTargets.add(key)
+                downloadTokens.push(token)
             })
 
             const links = []
@@ -526,18 +545,27 @@ export default class Animex extends HtmlSource {
             }
 
             // If directory listing failed (common outside IR), still expose download targets
-            if (!links.length && !externalFallbacks.length && downloadTokens.length) {
+            if (!links.length && downloadTokens.length) {
                 for (const token of downloadTokens) {
                     const groupLabel = [token.group_title, token.quality].filter(Boolean).join(' ')
                     if (!token.target) continue
+                    const already = links.some((l) => l.url === token.target) ||
+                        externalFallbacks.some((l) => l.url === token.target)
+                    if (already) continue
+                    const season = extractSeasonNumber(token.group_title, token.quality, title) ?? pageSeason ?? 1
+                    let episode = extractEpisodeNumber(token.target) || extractEpisodeNumber(groupLabel)
+                    // Season-pack directory without per-file list → keep selectable as E1
+                    if (!episode && (isDirectoryUrl(token.target) || /فصل|season/i.test(groupLabel))) {
+                        episode = 1
+                    }
                     externalFallbacks.push({
                         url: token.target,
                         externalUrl: token.target,
                         quality: groupLabel || qualityFromText(token.target) || null,
                         title: groupLabel || 'Animex',
                         size: token.size || null,
-                        season: extractSeasonNumber(token.group_title, token.quality, title) ?? pageSeason,
-                        episode: extractEpisodeNumber(token.target) || extractEpisodeNumber(groupLabel),
+                        season,
+                        episode: episode || 1,
                         behaviorHints: {notWebReady: true},
                     })
                 }
@@ -595,8 +623,16 @@ export default class Animex extends HtmlSource {
             return directs
         }
 
-        // Last resort: external directory links (user opens in browser — not playable in-app)
-        return links.filter((item) => item.externalUrl)
+        // Last resort: external directory / season links (browser open)
+        const external = links.filter((item) => item.externalUrl)
+        if (external.length) {
+            const bySeason = external.filter((item) => {
+                const s = item.season != null ? Number(item.season) : movieData?.pageSeason
+                return s == null || s === season
+            })
+            return bySeason.length ? bySeason : external
+        }
+        return []
     }
 
     getLinks(type, videoId, movieData) {
