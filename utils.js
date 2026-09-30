@@ -329,21 +329,37 @@ async function fetchTmdbDetailLang(kind, tmdbId, lang, httpClient, apiKey) {
 }
 
 export async function getTMDBMetaFa(type, imdbId, httpClient = axios, apiKey, logger = console) {
-    if (!apiKey || !imdbId) {
+    const id = String(imdbId || '').match(/^(tt\d+)/)?.[1]
+    if (!id) return null
+
+    const mode = getMetaProviderMode()
+    const tmdbKey = String(apiKey || process.env.TMDB_API_KEY || '').trim()
+    const omdbKey = String(process.env.OMDB_API_KEY || '').trim()
+
+    // OMDb-only, or auto without TMDB key
+    if (mode === 'omdb' || (mode === 'auto' && !tmdbKey && omdbKey)) {
+        return getOmdbMetaByImdb(id, httpClient, omdbKey, logger)
+    }
+
+    if (!tmdbKey) {
+        if (omdbKey) return getOmdbMetaByImdb(id, httpClient, omdbKey, logger)
         return null
     }
 
     try {
         const findData = await tmdbRequest(
-            `find/${encodeURIComponent(imdbId)}`,
+            `find/${encodeURIComponent(id)}`,
             {external_source: 'imdb_id', language: 'fa-IR'},
             httpClient,
-            apiKey,
+            tmdbKey,
             logger,
         )
         const resultsKey = type === 'series' ? 'tv_results' : 'movie_results'
         const item = findData?.[resultsKey]?.[0]
         if (!item?.id) {
+            if ((mode === 'auto' || mode === 'omdb') && omdbKey) {
+                return getOmdbMetaByImdb(id, httpClient, omdbKey, logger)
+            }
             return null
         }
 
@@ -388,7 +404,7 @@ export async function getTMDBMetaFa(type, imdbId, httpClient = axios, apiKey, lo
             : (detailFa.backdrop_path || detailEn?.backdrop_path || item.backdrop_path)
 
         return {
-            id: imdbId,
+            id,
             type,
             name,
             poster: posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : null,
@@ -397,9 +413,14 @@ export async function getTMDBMetaFa(type, imdbId, httpClient = axios, apiKey, lo
             releaseInfo: year,
             imdbRating: vote ? String(Math.round(vote * 10) / 10) : null,
             genres: genres.length ? genres : undefined,
+            imdb_id: id,
+            metaSource: 'tmdb',
         }
     } catch (error) {
         logAxiosError(error, logger, 'Unable to get TMDB Persian metadata')
+        if (mode === 'auto' && omdbKey) {
+            return getOmdbMetaByImdb(id, httpClient, omdbKey, logger)
+        }
         return null
     }
 }
@@ -427,9 +448,15 @@ export async function enrichMetaWithFaTmdb(
     logger = console,
     fallbackId = '',
 ) {
-    if (!meta || typeof meta !== 'object' || !apiKey) {
+    const tmdbKey = String(apiKey || process.env.TMDB_API_KEY || '').trim()
+    const omdbKey = String(process.env.OMDB_API_KEY || '').trim()
+    if (!meta || typeof meta !== 'object') {
         return meta
     }
+    if (!tmdbKey && !omdbKey) {
+        return meta
+    }
+    apiKey = tmdbKey || apiKey
     // Skip pure live/tv channel style ids without imdb
     const imdbId = extractImdbIdFromMeta(meta, fallbackId)
     if (!imdbId) {
