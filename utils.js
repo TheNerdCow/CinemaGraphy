@@ -30,6 +30,14 @@ export function logAxiosError(error, logger = console, context = 'HTTP request f
         }
         : {message: error?.message ?? String(error)}
 
+    // Iran/local: TMDB often ECONNRESET/ETIMEDOUT — not a code bug; keep streams working, less log spam
+    const netCodes = new Set(['ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED'])
+    const code = details.code
+    if (code && netCodes.has(String(code)) && /tmdb|TMDB|Persian metadata|title search/i.test(String(context))) {
+        if (typeof logger.warn === 'function') logger.warn(context, details)
+        else logger.error(context, details)
+        return
+    }
     logger.error(context, details)
 }
 

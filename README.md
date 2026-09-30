@@ -2,63 +2,108 @@
   <img src="logo.png" alt="CinemaGraphy" width="120"/>
   <h1>CinemaGraphy · سینماگرافی</h1>
   <p>
-    <a href="#english">English</a> · <a href="#فارسی">فارسی</a>
+    <a href="#-فارسی">فارسی</a> · <a href="#-english">English</a>
   </p>
   <p>
-    <img src="https://img.shields.io/badge/version-3.2.7-e8a04a.svg" alt="3.2.7"/>
+    <img src="https://img.shields.io/badge/version-3.2.11-e8a04a.svg" alt="3.2.11"/>
     <img src="https://img.shields.io/badge/Stremio%20%7C%20Nuvio-addon-7eb6ff.svg" alt="addon"/>
-    <img src="https://img.shields.io/badge/FA%20%7C%20EN-yes-5dcea0.svg" alt="lang"/>
+    <img src="https://img.shields.io/badge/Local%20%7C%20CF%20%7C%20Vercel-yes-5dcea0.svg" alt="deploy"/>
   </p>
 </div>
 
 ---
 
-<a id="فارسی"></a>
+<a id="-فارسی"></a>
 
 ## فارسی
 
-**سینماگرافی** یک افزونهٔ استریمیو / نوویو است برای تماشای فیلم و سریال با منابع ایرانی، متای فارسی و کاتالوگ‌های کمکی.
+**سینماگرافی** افزونهٔ استریمیو / نوویو برای فیلم، سریال، انیمه و منابع ایرانی است.
 
-### هدف
-ساده کردن دسترسی به استریم از چند منبع در یک افزونه، با رابط فارسی و امکان شخصی‌سازی برای هر کاربر.
+### لینک‌ها
+- مخزن: [github.com/TheNerdCow/CinemaGraphy](https://github.com/TheNerdCow/CinemaGraphy)
+- در صورت فیلتر بودن `workers.dev`، از **اجرای لوکال** یا دامنهٔ اختصاصی روی Worker استفاده کنید.
 
 ### امکانات
 - چند پروایدر ایرانی به‌صورت موازی  
-- متای فارسی و پروکسی پوستر TMDB  
-- کاتالوگ انیمه، سریال ترکی، ماهواره (IPTV) و گزینه‌های بیشتر در شخصی‌سازی  
-- نصب عمومی یا لینک اختصاصی از صفحهٔ Configure  
-- اجرا روی Vercel یا Cloudflare Workers  
+- متای فارسی (TMDB) وقتی شبکه اجازه دهد  
+- کاتالوگ ترکی، انیمکس، ۱۰۱، ماهواره و شخصی‌سازی  
+- اجرا روی لوکال، Cloudflare Worker یا Vercel  
 
-جزئیات نصب، Env و راهنمای VIP فقط روی **سایت افزونه** (`/guide` و `/configure`) است.
+### اجرای لوکال
+1. Node.js ۱۸+ نصب باشد  
+2. داخل پوشهٔ پروژه: `npm install`  
+3. فایل `.env` کنار `index.js` (نمونه در `env.public.example` / فایل env شخصی)  
+4. اجرا:
+
+```bash
+npm start
+# یا
+node --env-file=.env ./index.js
+```
+
+5. در استریمیو نصب کنید:
+
+```text
+http://127.0.0.1:7000/manifest.json
+```
+
+اگر لاگ `ECONNRESET` برای TMDB دیدید: از ایران `api.themoviedb.org` قطع می‌شود. استریم پروایدرها معمولاً کار می‌کند؛ برای پوستر/متای فارسی روی همان سیستم VPN بزنید. **OMDB جایگزین کامل TMDB نیست** (سقف ۱۰۰۰ درخواست/روز، بدون فارسی غنی).
+
+### Ava / Digi روی لوکال
+در `.env` می‌توانید بگذارید (ریسک و انقضا با خودتان):
+
+```env
+DIGIMOVIE_BASEURL=...
+DIGIMOVIE_COOKIE=...
+AVAMOVIE_BASEURL=...
+AVAMOVIE_COOKIE=...
+```
+
+جزئیات VIP و Env کامل روی صفحهٔ `/guide` سایت افزونه است.
 
 ### احترام
-با احترام به زحمات **آقای محبّی** و همهٔ کسانی که در مسیر این پروژه نقش داشته‌اند.
+با احترام به **آقای محبّی** و همهٔ مشارکت‌کنندگان.
 
 ### لایسنس
 ISC
 
 ---
 
-<a id="english"></a>
+<a id="-english"></a>
 
 ## English
 
-**CinemaGraphy** is a Stremio / Nuvio addon for movies and series: Iranian sources, Persian metadata, and optional extra catalogs.
+**CinemaGraphy** is a Stremio / Nuvio addon for movies, series, anime and Iranian stream sources.
 
-### Purpose
-One addon that aggregates multiple stream sources, with a Persian-first experience and per-user configuration when needed.
+### Links
+- Repo: [github.com/TheNerdCow/CinemaGraphy](https://github.com/TheNerdCow/CinemaGraphy)
+- If `workers.dev` is blocked in your network, run **locally** or put a custom domain on the Worker.
 
 ### Features
-- Several Iranian providers in parallel  
-- Persian meta and TMDB poster proxy  
-- Anime, Turkish series, IPTV and more via Configure  
-- Public install or a private link from the Configure page  
-- Runs on Vercel or Cloudflare Workers  
+- Multiple Iranian providers in parallel  
+- Persian metadata via TMDB when reachable  
+- Turkish / Animex / 101 / IPTV catalogs and Configure  
+- Local, Cloudflare Worker, or Vercel  
 
-Full install steps, environment variables, and VIP setup live on the **addon site** (`/guide` and `/configure`) — not duplicated here.
+### Local run
+1. Node.js 18+  
+2. `npm install`  
+3. Place `.env` next to `index.js`  
+4. Start:
 
-### Credits
-With respect to **Mr. Mohebbi (آقای محبّی)** and everyone who contributed along the way.
+```bash
+npm start
+# or
+node --env-file=.env ./index.js
+```
+
+5. Install in Stremio:
+
+```text
+http://127.0.0.1:7000/manifest.json
+```
+
+`ECONNRESET` on TMDB usually means the API is filtered (e.g. from some Iranian ISPs). Streams can still work; use a VPN on the host for posters/FA meta. **OMDB is not a full TMDB replacement** (≈1000 req/day free, no rich Persian meta).
 
 ### License
 ISC
