@@ -43,306 +43,11 @@ export function logAxiosError(error, logger = console, context = 'HTTP request f
 
 // ---------------------------------------------------------------------------
 // TMDB transport: server-side API client + image URL rewrite for clients in IR
-// ---------------------------------------------------------------------------
-
-const TMDB_API_BASE = 'https://api.themoviedb.org/3'
-const TMDB_IMAGE_HOST = 'image.tmdb.org'
-const TMDB_IMAGE_SIZES = new Set([
-    'w92', 'w154', 'w185', 'w300', 'w342', 'w500', 'w780', 'w1280',
-    'h632', 'original',
-])
-
-/** In-memory API cache (language/region aware). */
-const tmdbApiCache = new Map()
-const TMDB_API_CACHE_TTL_MS = Number(process.env.TMDB_CACHE_TTL_MS || 6 * 60 * 60 * 1000) // 6h default
-const TMDB_API_CACHE_MAX = 400
-
-function tmdbCacheKey(path, params = {}) {
-    const sorted = Object.keys(params || {})
-        .filter((k) => k !== 'api_key' && params[k] != null && params[k] !== '')
-        .sort()
-        .map((k) => `${k}=${params[k]}`)
-        .join('&')
-    return `${path}?${sorted}`
-}
-
-function tmdbCacheGet(key) {
-    const row = tmdbApiCache.get(key)
-    if (!row) return null
-    if (Date.now() - row.at > TMDB_API_CACHE_TTL_MS) {
-        tmdbApiCache.delete(key)
-        return null
-    }
-    return row.data
-}
-
-function tmdbCacheSet(key, data) {
-    tmdbApiCache.set(key, {at: Date.now(), data})
-    if (tmdbApiCache.size > TMDB_API_CACHE_MAX) {
-        const first = tmdbApiCache.keys().next().value
-        tmdbApiCache.delete(first)
-    }
-}
-
-/**
- * Central TMDB API client (server-side only). Preserves language/region params.
- * Never exposes api_key in returned data.
- */
-export async function tmdbRequest(path, params = {}, httpClient = axios, apiKey = process.env.TMDB_API_KEY, logger = console) {
-    if (!apiKey) {
-        throw new Error('TMDB_API_KEY missing')
-    }
-    const cleanPath = String(path || '').replace(/^\/+/, '')
-    if (!cleanPath || cleanPath.includes('..')) {
-        throw new Error('Invalid TMDB path')
-    }
-    const key = tmdbCacheKey(cleanPath, params)
-    const cached = tmdbCacheGet(key)
-    if (cached != null) return cached
-
-    const response = await httpClient.get(`${TMDB_API_BASE}/${cleanPath}`, {
-        params: {...params, api_key: apiKey},
-        timeout: REQUEST_TIMEOUT_MS,
-    })
-    const data = response.data ?? null
-    if (data != null) tmdbCacheSet(key, data)
-    return data
-}
-
-/** Build absolute TMDB image URL (upstream). */
-export function tmdbImageUpstream(size, filePath) {
-    const s = TMDB_IMAGE_SIZES.has(String(size)) ? String(size) : 'w500'
-    let p = String(filePath || '').replace(/^\/+/, '')
-    if (!p) return null
-    return `https://${TMDB_IMAGE_HOST}/t/p/${s}/${p}`
-}
-
-/**
- * Rewrite a single image.tmdb.org URL to same-origin proxy.
- * Non-TMDB URLs (RPDB, provider CDNs, …) are left untouched.
- */
-export function proxyTmdbImageUrl(url, publicBase) {
-    if (!url || typeof url !== 'string') return url
-    if (!publicBase) return url
-    const m = url.match(/^https?:\/\/image\.tmdb\.org\/t\/p\/([a-zA-Z0-9]+)\/(.+)$/i)
-    if (!m) return url
-    const size = m[1]
-    const file = m[2].replace(/^\/+/, '')
-    if (!/^[a-zA-Z0-9]+$/.test(size)) return url
-    if (!file || file.includes('..') || /[^\w./-]/.test(file)) return url
-    const base = String(publicBase).replace(/\/$/, '')
-    return `${base}/api/tmdb-image/${size}/${file}`
-}
-
-/** Deep-rewrite image.tmdb.org strings inside meta / catalog JSON. */
-export function rewriteTmdbImageUrls(value, publicBase, seen = new WeakSet()) {
-    if (!publicBase) return value
-    if (typeof value === 'string') {
-        return proxyTmdbImageUrl(value, publicBase)
-    }
-    if (typeof value !== 'object' || value === null) return value
-    if (seen.has(value)) return value
-    seen.add(value)
-    if (Array.isArray(value)) {
-        return value.map((v) => rewriteTmdbImageUrls(v, publicBase, seen))
-    }
-    const out = {}
-    for (const [k, child] of Object.entries(value)) {
-        out[k] = rewriteTmdbImageUrls(child, publicBase, seen)
-    }
-    return out
-}
-
-/** Validate image proxy path segment (no open-proxy / SSRF). */
-export function parseTmdbImageProxyPath(size, filePath) {
-    const s = String(size || '')
-    if (!/^[a-zA-Z0-9]+$/.test(s)) return null
-    let file = String(filePath || '').replace(/^\/+/, '')
-    if (!file || file.includes('..') || file.includes('\\') || /[^\w./-]/.test(file)) return null
-    return {size: s, file, upstream: `https://${TMDB_IMAGE_HOST}/t/p/${s}/${file}`}
-}
-
-
-export async function getCinemeta(type, imdbId, httpClient = axios) {
-    if (!imdbId) {
-        return null
-    }
-
-    try {
-        const response = await httpClient.get(
-            `https://v3-cinemeta.strem.io/meta/${type}/${encodeURIComponent(imdbId)}.json`,
-            {timeout: REQUEST_TIMEOUT_MS},
-        )
-        return response.data ?? null
-    } catch (error) {
-        logAxiosError(error, console, 'Unable to get Cinemeta metadata')
-        return null
-    }
-}
-
-export async function searchAndGetTMDB(
-    title,
-    type,
-    httpClient = axios,
-    logger = console,
-    apiKey = process.env.TMDB_API_KEY,
-) {
-    if (!apiKey || !title) {
-        logger.warn('TMDB_API_KEY is required to resolve IMDb IDs')
-        return null
-    }
-
-    try {
-        const searchData = await tmdbRequest('search/multi', {query: title}, httpClient, apiKey, logger)
-        const expectedMediaType = type === 'series' ? 'tv' : type
-        const results = Array.isArray(searchData?.results) ? searchData.results : []
-        const item = results.find((result) => result.media_type === expectedMediaType)
-        if (!item?.id || !['movie', 'tv'].includes(item.media_type)) {
-            return null
-        }
-
-        return await tmdbRequest(
-            `${item.media_type}/${item.id}`,
-            {append_to_response: 'external_ids'},
-            httpClient,
-            apiKey,
-            logger,
-        )
-    } catch (error) {
-        logAxiosError(error, logger, 'Unable to resolve IMDb ID through TMDB')
-        return null
-    }
-}
-
-export async function getSubtitle(type, imdbId, httpClient = axios) {
-    if (!imdbId) {
-        return {subtitles: []}
-    }
-
-    try {
-        const response = await httpClient.get(
-            `https://opensubtitles-v3.strem.io/subtitles/${type}/${encodeURIComponent(imdbId)}.json`,
-            {timeout: REQUEST_TIMEOUT_MS},
-        )
-        return response.data ?? {subtitles: []}
-    } catch (error) {
-        logAxiosError(error, console, 'Unable to get subtitles')
-        return {subtitles: []}
-    }
-}
-
-const TMDB_GENRE_CACHE_TTL_MS = 24 * 60 * 60 * 1_000 // 24h
-const tmdbGenreCache = new Map() // `${type}` -> {timestamp, genres: Map(id -> name)}
-
-async function getTMDBGenreMap(type, httpClient, apiKey, logger) {
-    const cached = tmdbGenreCache.get(type)
-    if (cached && Date.now() - cached.timestamp < TMDB_GENRE_CACHE_TTL_MS) {
-        return cached.genres
-    }
-    try {
-        const data = await tmdbRequest(
-            `genre/${type === 'series' ? 'tv' : 'movie'}/list`,
-            {language: 'fa-IR'},
-            httpClient,
-            apiKey,
-            logger,
-        )
-        const genres = new Map((data?.genres ?? []).map((g) => [g.id, g.name]))
-        tmdbGenreCache.set(type, {timestamp: Date.now(), genres})
-        return genres
-    } catch (error) {
-        logAxiosError(error, logger, 'Unable to get TMDB genre list')
-        return cached?.genres ?? new Map()
-    }
-}
-
-/**
- * Persian (fa-IR) metadata for a piece of IMDb-id'd content — poster,
- * backdrop, overview, and genre names all localized via TMDB, so Iranian
- * posters/covers and Persian descriptions show up in the catalog instead of
- * the English Cinemeta defaults. Requires TMDB_API_KEY; returns null (so the
- * caller can fall back to Cinemeta) if unavailable or nothing is found.
- */
-
-/** True if string contains Persian/Arabic letters. */
-export function hasPersianScript(text) {
-    return /[\u0600-\u06FF]/.test(String(text || ''))
-}
-
-/** Remove bidi control chars that can confuse native Stremio UI. */
-export function stripBidi(text) {
-    return String(text || '').replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '').trim()
-}
-
-/**
- * Prefer Persian TMDB text; if missing or not localized, use English — never
- * fall back to original_title (Korean/Japanese/etc.) for display names.
- */
-/** Request-scoped preference: 'fa' (default) or 'en' for TMDB text. */
-let _metaLangPref = 'fa'
-
-export function setMetaLangPref(lang) {
-    const v = String(lang || 'fa').trim().toLowerCase()
-    _metaLangPref = v === 'en' || v === 'en-us' || v === 'english' ? 'en' : 'fa'
-}
-
-export function getMetaLangPref() {
-    return _metaLangPref
-}
-
-export function preferFaThenEn(faVal, enVal) {
-    const fa = String(faVal || '').trim()
-    const en = String(enVal || '').trim()
-    if (_metaLangPref === 'en') {
-        if (en) return en
-        if (fa) return fa
-        return null
-    }
-    if (fa && hasPersianScript(fa)) return fa
-    if (en) return en
-    if (fa) return fa
-    return null
-}
-
-/** Prefer Persian genre labels; if TMDB fa list is still Latin, use English list. */
-export function pickFaOrEnGenres(genresFa, genresEn) {
-    const fa = (genresFa || []).filter(Boolean)
-    const en = (genresEn || []).filter(Boolean)
-    if (_metaLangPref === 'en') {
-        if (en.length) return en
-        return fa.length ? fa : undefined
-    }
-    if (fa.some((g) => hasPersianScript(g))) return fa
-    if (en.length) return en
-    return fa.length ? fa : undefined
-}
-
-
-async function fetchTmdbDetailLang(kind, tmdbId, lang, httpClient, apiKey) {
-    const data = await tmdbRequest(
-        `${kind}/${tmdbId}`,
-        {language: lang, append_to_response: 'external_ids'},
-        httpClient,
-        apiKey,
-    )
-    return data ?? {}
-}
-
 export async function getTMDBMetaFa(type, imdbId, httpClient = axios, apiKey, logger = console) {
-    const id = String(imdbId || '').match(/^(tt\d+)/)?.[1]
-    if (!id) return null
-
-    const mode = getMetaProviderMode()
+    // No / invalid TMDB key → return null; caller uses Cinemeta (app meta handler).
     const tmdbKey = String(apiKey || process.env.TMDB_API_KEY || '').trim()
-    const omdbKey = String(process.env.OMDB_API_KEY || '').trim()
-
-    // OMDb-only, or auto without TMDB key
-    if (mode === 'omdb' || (mode === 'auto' && !tmdbKey && omdbKey)) {
-        return getOmdbMetaByImdb(id, httpClient, omdbKey, logger)
-    }
-
-    if (!tmdbKey) {
-        if (omdbKey) return getOmdbMetaByImdb(id, httpClient, omdbKey, logger)
+    const id = String(imdbId || '').match(/^(tt\d+)/)?.[1]
+    if (!tmdbKey || !id) {
         return null
     }
 
@@ -357,9 +62,6 @@ export async function getTMDBMetaFa(type, imdbId, httpClient = axios, apiKey, lo
         const resultsKey = type === 'series' ? 'tv_results' : 'movie_results'
         const item = findData?.[resultsKey]?.[0]
         if (!item?.id) {
-            if ((mode === 'auto' || mode === 'omdb') && omdbKey) {
-                return getOmdbMetaByImdb(id, httpClient, omdbKey, logger)
-            }
             return null
         }
 
@@ -414,13 +116,9 @@ export async function getTMDBMetaFa(type, imdbId, httpClient = axios, apiKey, lo
             imdbRating: vote ? String(Math.round(vote * 10) / 10) : null,
             genres: genres.length ? genres : undefined,
             imdb_id: id,
-            metaSource: 'tmdb',
         }
     } catch (error) {
         logAxiosError(error, logger, 'Unable to get TMDB Persian metadata')
-        if (mode === 'auto' && omdbKey) {
-            return getOmdbMetaByImdb(id, httpClient, omdbKey, logger)
-        }
         return null
     }
 }
@@ -449,14 +147,10 @@ export async function enrichMetaWithFaTmdb(
     fallbackId = '',
 ) {
     const tmdbKey = String(apiKey || process.env.TMDB_API_KEY || '').trim()
-    const omdbKey = String(process.env.OMDB_API_KEY || '').trim()
-    if (!meta || typeof meta !== 'object') {
+    if (!meta || typeof meta !== 'object' || !tmdbKey) {
         return meta
     }
-    if (!tmdbKey && !omdbKey) {
-        return meta
-    }
-    apiKey = tmdbKey || apiKey
+    apiKey = tmdbKey
     // Skip pure live/tv channel style ids without imdb
     const imdbId = extractImdbIdFromMeta(meta, fallbackId)
     if (!imdbId) {
