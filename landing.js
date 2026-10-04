@@ -1509,7 +1509,7 @@ details.faq summary{cursor:pointer;font-weight:700}
 <tr><td><code>ASLMOVIEZ_BASEURL</code></td><td>AslMoviez</td><td>—</td></tr>
 <tr><td><code>SERIALBLOG_BASEURL</code></td><td>SerialBlog</td><td>—</td></tr>
 <tr><td><code>DONYAYESERIAL_BASEURL</code></td><td>DonyayeSerial</td><td>—</td></tr>
-<tr><td><code>ANIMEX_BASEURL</code></td><td>Animex</td><td><code>https://animex.click</code></td></tr>
+<tr><td><code>ANIMEX_BASEURL</code></td><td>Animex</td><td><code>https://animex.my</code></td></tr>
 <tr><td><code>DIGIMOVIE_BASEURL</code></td><td>DigiMovie</td><td><code>https://www.digimoviez.com</code></td></tr>
 <tr><td><code>DIGIMOVIE_COOKIE</code></td><td><span class="lang-fa">سشن VIP (ترجیحی)</span><span class="lang-en">VIP session (preferred)</span></td><td>—</td></tr>
 <tr><td><code>AVAMOVIE_BASEURL</code></td><td>AvaMovie</td><td><code>https://avamovie.shop</code></td></tr>
