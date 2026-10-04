@@ -712,32 +712,32 @@ const links = []
                     if (fetched.length) {
                         links.push(...fetched)
                     } else if (token?.target) {
-                        // CDN list blocked from Worker IP → synthesize direct episode .mkv URLs
-                        // (client in Iran still plays). Prefer stream redirect host when present.
-                        const maxEp = guessMaxEpisodesFromHtml(rawHtml, title)
-                        let synthUrl = token.target
-                        // Prefer download/dir URL for path parsing
-                        if (/animexstream\.fun/i.test(synthUrl) && /[?&]url=/i.test(synthUrl)) {
+                        // CDN dir is often only reachable from Iran — hand folder to the user/client.
+                        // Prefer plain rdl ?dir= URL over animexstream redirect when both exist.
+                        let folderUrl = token.target
+                        if (/animexstream\.fun/i.test(folderUrl) && /[?&]url=/i.test(folderUrl)) {
                             try {
-                                synthUrl = new URL(synthUrl).searchParams.get('url') || synthUrl
+                                folderUrl = new URL(folderUrl).searchParams.get('url') || folderUrl
                             } catch { /* keep */ }
                         }
+                        const maxEp = guessMaxEpisodesFromHtml(rawHtml, title)
+                        // Try synthesize for local/IR workers that can play direct files
                         const synthesized = synthesizeEpisodeFilesFromDir(
-                            synthUrl, groupLabel, seasonHint, maxEp,
+                            folderUrl, groupLabel, seasonHint, maxEp,
                         )
                         if (synthesized.length) {
                             links.push(...synthesized)
-                        } else {
-                            externalFallbacks.push({
-                                url: token.target,
-                                externalUrl: token.target,
-                                quality: groupLabel || null,
-                                title: `${groupLabel || 'دانلود'} — لیست فایل‌ها (مرورگر)`,
-                                season: seasonHint,
-                                episode: 1,
-                                behaviorHints: {notWebReady: true},
-                            })
                         }
+                        // Always also expose the quality folder for the user (browser / download)
+                        externalFallbacks.push({
+                            url: folderUrl,
+                            externalUrl: folderUrl,
+                            quality: groupLabel || qualityFromText(folderUrl) || null,
+                            title: `${groupLabel || 'دانلود'} — پوشه کیفیت`,
+                            season: seasonHint ?? 1,
+                            episode: 1,
+                            behaviorHints: {notWebReady: true},
+                        })
                     }
                 }
             }
@@ -804,12 +804,16 @@ const links = []
         const links = this.getMovieLinks(movieData)
 
         const matched = links.filter((item) => {
-            // Prefer real file URLs matched to this episode
-            if (item.externalUrl && !isDirectVideoUrl(item.url)) {
-                return false
-            }
             const s = item.season != null ? Number(item.season) : movieData?.pageSeason
             const e = item.episode != null ? Number(item.episode) : null
+            // Direct file for this episode
+            if (item.url && isDirectVideoUrl(item.url) && e === episode && (s == null || s === season)) {
+                return true
+            }
+            // Folder/external: show for every episode in season (user picks file in browser)
+            if (item.externalUrl && !isDirectVideoUrl(item.url)) {
+                return s == null || s === season
+            }
             if (e == null) return false
             if (s == null) return e === episode
             return s === season && e === episode
