@@ -70,8 +70,8 @@ export function renderLandingPage({
 
   const addonCards = RECOMMENDED.map(
     (a) => `
-<a class="card" href="${escapeHtml(a.href)}" target="_blank" rel="noopener">
-  <img src="${escapeHtml(a.icon)}" alt="" width="36" height="36" loading="lazy" onerror="this.style.opacity='0'"/>
+<a class="c glass" href="${escapeHtml(a.href)}" target="_blank" rel="noopener">
+  <img class="ico-img" src="${escapeHtml(a.icon)}" alt="" width="40" height="40" loading="lazy" onerror="this.style.display='none'"/>
   <div>
     <b>${escapeHtml(a.name)}</b>
     <span class="lang-fa">${escapeHtml(a.descFa)}</span>
@@ -81,195 +81,503 @@ export function renderLandingPage({
   ).join('')
 
   return `<!DOCTYPE html>
-<html lang="fa" dir="rtl" data-lang="fa">
+<html lang="fa" dir="rtl">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<meta name="theme-color" content="#0b0d12"/>
-<title>سینماگرافی · CinemaGraphy</title>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>سینماگرافی — Cinemagraphy</title>
 <link rel="icon" href="${logo}"/>
 <style>
-:root{
-  --bg:#0b0d12;--card:#141821;--line:#252b38;--text:#eef1f6;--muted:#9aa3b5;
-  --accent:#e8a04a;--accent2:#6ea8ff;--ok:#3ecf8e;--radius:14px;
-  --font:Tahoma,"Segoe UI",system-ui,sans-serif;
-}
+:root{--t:#f4f0ea;--m:#a89f94;--a:#e8a04a;--a2:#7eb6ff;--g:rgba(255,255,255,.07);--gb:rgba(255,255,255,.14);--gl:rgba(232,160,74,.35)}
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.7;min-height:100vh}
-a{color:var(--accent2);text-decoration:none}
-a:hover{text-decoration:underline}
-.wrap{width:min(880px,100%);margin:0 auto;padding:0 16px}
-header{position:sticky;top:0;z-index:20;background:rgba(11,13,18,.92);border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
-.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text);text-decoration:none}
-.brand img{width:36px;height:36px;border-radius:10px;object-fit:cover}
-.nav-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--text);
-  border-radius:999px;padding:7px 12px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit}
-.chip:hover{border-color:var(--accent)}
-.chip .flag{font-size:1rem;line-height:1}
-.ver{font-size:.78rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
-main{padding:28px 0 48px}
-.hero{text-align:center;padding:28px 0 20px}
-.hero img.logo{width:88px;height:88px;border-radius:22px;object-fit:cover;margin-bottom:14px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
-.hero h1{font-size:clamp(1.45rem,4vw,1.9rem);font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
-.hero p{color:var(--muted);max-width:36rem;margin:0 auto 18px;font-size:.95rem}
-.btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:10px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:12px;
-  font-weight:700;font-size:.92rem;border:1px solid transparent;cursor:pointer;font-family:inherit;text-decoration:none}
-.btn-p{background:var(--accent);color:#1a1208}
-.btn-p:hover{filter:brightness(1.06);text-decoration:none}
-.btn-g{background:var(--card);color:var(--text);border-color:var(--line)}
-.btn-g:hover{border-color:var(--accent2);text-decoration:none}
-.hint{font-size:.8rem;color:var(--muted);word-break:break-all;direction:ltr;unicode-bidi:plaintext}
-section{margin-top:28px}
-section h2{font-size:1.1rem;margin-bottom:12px;font-weight:700}
-.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
-.card{display:flex;gap:12px;align-items:flex-start;padding:14px;background:var(--card);border:1px solid var(--line);
-  border-radius:var(--radius);color:var(--text);text-decoration:none;transition:border-color .15s}
-.card:hover{border-color:var(--accent2);text-decoration:none}
-.card img{border-radius:8px;flex-shrink:0}
-.card b{display:block;font-size:.92rem;margin-bottom:2px}
-.card span{display:block;font-size:.8rem;color:var(--muted)}
-.feat b{color:var(--text)}
-.feat span{color:var(--muted);font-size:.82rem}
-.clients a{display:inline-block;margin:4px 6px 4px 0;padding:8px 12px;background:var(--card);border:1px solid var(--line);
-  border-radius:10px;color:var(--text);font-size:.85rem;font-weight:600}
-.clients a:hover{border-color:var(--accent);text-decoration:none}
-.box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px}
-.box h3{font-size:.95rem;margin-bottom:8px}
-footer{border-top:1px solid var(--line);padding:20px 0 32px;text-align:center;color:var(--muted);font-size:.85rem}
-footer a{color:var(--muted)}
-footer a:hover{color:var(--accent2)}
-html[data-lang="fa"] .lang-en{display:none!important}
-html[data-lang="en"] .lang-fa{display:none!important}
-html[data-lang="en"] body,html[data-lang="en"]{direction:ltr;text-align:left;font-family:"Segoe UI",system-ui,sans-serif}
-html[data-lang="en"] .hero,html[data-lang="en"] footer{text-align:center}
-@media(max-width:560px){
-  .hero{padding-top:18px}
-  .btns .btn{flex:1 1 100%}
+body{font-family:Vazirmatn,Tahoma,Segoe UI,system-ui,sans-serif;color:var(--t);min-height:100vh;line-height:1.65;overflow-x:hidden;
+cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='8' cy='8' r='5.5' fill='none' stroke='%23e8a04a' stroke-width='1.8'/%3E%3Ccircle cx='8' cy='8' r='1.6' fill='%23e8a04a'/%3E%3Cpath d='M12.5 12.5L22 22' stroke='%23e8a04a' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") 8 8,auto}
+a,button,.chip,.btn,.copy{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='8' cy='8' r='6' fill='rgba(232,160,74,.25)' stroke='%23e8a04a' stroke-width='1.8'/%3E%3Ccircle cx='8' cy='8' r='2' fill='%23e8a04a'/%3E%3C/svg%3E") 8 8,pointer}
+.bg{position:fixed;inset:0;z-index:-2;background:
+radial-gradient(ellipse 120% 80% at 50% 120%,#1a0a2e 0%,transparent 55%),
+radial-gradient(ellipse 60% 50% at 80% 20%,#0d1b3a 0%,transparent 50%),
+radial-gradient(ellipse 50% 40% at 15% 30%,#1a1025 0%,transparent 45%),
+linear-gradient(180deg,#050508,#0a0612 40%,#12081c)}
+.stars{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.7;
+background-image:radial-gradient(1.5px 1.5px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 30% 60%,#fff,transparent),radial-gradient(1.5px 1.5px at 50% 15%,#ffe9c4,transparent),radial-gradient(1px 1px at 70% 40%,#fff,transparent),radial-gradient(1px 1px at 85% 75%,#cde4ff,transparent),radial-gradient(1.5px 1.5px at 20% 80%,#fff,transparent),radial-gradient(1px 1px at 60% 90%,#fff,transparent),radial-gradient(1px 1px at 40% 35%,#ffe9c4,transparent),radial-gradient(1.5px 1.5px at 90% 10%,#fff,transparent),radial-gradient(1px 1px at 5% 50%,#fff,transparent)}
+.neb{position:fixed;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(80px);opacity:.28}
+.n1{top:-20%;right:-15%;width:70vw;height:70vw;background:radial-gradient(circle,#3d1a6e,transparent 70%)}
+.n2{bottom:-25%;left:-20%;width:70vw;height:70vw;background:radial-gradient(circle,#1a3a6e,transparent 70%)}
+.glass{background:var(--g);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);border:1px solid var(--gb);border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}
+.rec-nuvio{border-color:rgba(126,182,255,.35)!important;box-shadow:0 0 0 1px rgba(126,182,255,.12),0 12px 40px rgba(20,40,90,.35),inset 0 1px 0 rgba(255,255,255,.1)!important}
+.rec-nuvio::before{content:'';position:absolute;inset:-40% -20%;background:radial-gradient(ellipse at 30% 0%,rgba(126,182,255,.18),transparent 55%);pointer-events:none}
+.rec-badge{position:absolute;top:12px;inset-inline-end:12px;font-size:.68rem;font-weight:800;padding:4px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(126,182,255,.35),rgba(232,160,74,.25));border:1px solid rgba(126,182,255,.4);color:#e8f0ff;letter-spacing:.02em;z-index:1}
+.tile .hov{gap:6px!important;padding:10px 8px!important}
+.tile .hov a{margin:0!important;width:100%;display:block}
+.tile .hov .s-nuvio{background:linear-gradient(135deg,#6a9dff,#4a7ae0);color:#fff}
+
+.lang-en{display:none!important}html[lang=en] .lang-fa{display:none!important}html[lang=en] .lang-en{display:revert!important}html[lang=en] body{direction:ltr}/* block-level bilingual nodes stay block when visible */h1.lang-fa,h1.lang-en,p.lang-fa,p.lang-en,h2.lang-fa,h2.lang-en,section .sub.lang-fa,section .sub.lang-en{display:block}html[lang=en] h1.lang-en,html[lang=en] p.lang-en,html[lang=en] h2.lang-en,html[lang=en] section .sub.lang-en{display:block!important}html[lang=en] h1.lang-fa,html[lang=en] p.lang-fa,html[lang=en] h2.lang-fa,html[lang=en] section .sub.lang-fa{display:none!important}
+header{position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:14px 5vw;background:rgba(5,5,8,.45);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06)}
+.brand{display:flex;gap:12px;align-items:center;color:var(--t);text-decoration:none;font-weight:800;font-size:1.15rem}
+.brand img{width:40px;height:40px;border-radius:12px;box-shadow:0 0 20px var(--gl)}
+.chip{border:1px solid var(--gb);background:var(--g);backdrop-filter:blur(12px);color:var(--t);border-radius:999px;padding:8px 14px;font-weight:600;font-size:.85rem}
+.hero{max-width:1080px;margin:0 auto;padding:48px 5vw 32px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center}
+@media(max-width:860px){.hero{grid-template-columns:1fr;text-align:center}.vis{order:-1}.row{justify-content:center}.badge{align-self:center!important}.hero-copy{align-items:center}}
+.hero-copy{display:flex;flex-direction:column;align-items:flex-start;min-width:0;max-width:100%;position:relative;z-index:2}
+.badge{display:inline-flex;align-self:flex-start;padding:4px 12px;border-radius:999px;font-size:.72rem;font-weight:700;background:rgba(232,160,74,.15);color:var(--a);border:1px solid rgba(232,160,74,.3);margin-bottom:4px}
+.hero-copy h1{font-size:clamp(1.85rem,4.6vw,2.85rem);font-weight:900;line-height:1.2;margin:4px 0 12px;letter-spacing:-.03em;max-width:100%;word-break:break-word}
+.hero-copy h1 span{display:inline;background:linear-gradient(135deg,var(--a),#ff6b4a 40%,var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--m);font-size:.98rem;line-height:1.7;max-width:32rem;width:100%;margin:0 0 4px;position:relative;z-index:2}
+@media(max-width:860px){.lead{margin-inline:auto;text-align:center}}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;border-radius:14px;font-weight:800;font-size:.95rem;text-decoration:none;border:none;transition:transform .2s,box-shadow .2s;font-family:inherit}
+.btn:hover{transform:translateY(-2px)}
+.bp{background:linear-gradient(135deg,#e8a04a,#d4783a);color:#1a0f05;box-shadow:0 8px 28px rgba(232,160,74,.35)}
+.bp.ok{background:linear-gradient(135deg,#5dcea0,#3aa87a);color:#06150f;box-shadow:0 8px 28px rgba(93,206,160,.35)}
+.box{margin-top:4px;padding:14px 16px}
+.box label{font-size:.72rem;color:var(--m);display:block;margin-bottom:8px;font-weight:600}
+.box .r{display:flex;gap:8px;align-items:center}
+.box input{flex:1;min-width:0;background:rgba(0,0,0,.25);border:1px solid var(--gb);border-radius:10px;color:var(--t);font-family:ui-monospace,monospace;font-size:.75rem;padding:10px 12px;direction:ltr;text-align:left;outline:none}
+.copy{border:1px solid var(--gb);background:rgba(255,255,255,.1);color:var(--t);border-radius:10px;padding:10px 14px;font-weight:700;font-size:.8rem;white-space:nowrap}
+.copy.ok{color:#7dffb3;border-color:rgba(125,255,179,.4)}
+.vis{display:flex;justify-content:center}
+.stage{width:min(260px,65vw);animation:f 5s ease-in-out infinite;position:relative}
+@keyframes f{50%{transform:translateY(-14px)}}
+.stage::before{content:'';position:absolute;inset:-20%;background:radial-gradient(circle,var(--gl),transparent 65%);filter:blur(30px);opacity:.6;z-index:-1}
+.stage .gwrap{padding:20px;border-radius:28px}
+.stage img{width:100%;border-radius:20px;display:block}
+section{max-width:1080px;margin:0 auto;padding:20px 5vw 28px}
+section h2{font-size:1.25rem;font-weight:800;margin-bottom:4px}
+section .sub{color:var(--m);font-size:.9rem;margin-bottom:16px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.p{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 12px;text-align:center;text-decoration:none;color:var(--t);font-weight:700;font-size:.9rem;border-radius:16px;transition:transform .2s}
+.p:hover{transform:translateY(-3px);border-color:rgba(232,160,74,.35)}
+.p svg{width:20px;height:20px;opacity:.9;flex-shrink:0}
+.pl{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.pl .c{display:flex;gap:12px;align-items:center;padding:16px;border-radius:16px;transition:transform .2s;text-decoration:none;color:var(--t)}
+.pl .c:hover{transform:translateY(-2px);border-color:rgba(232,160,74,.35)}
+.pl .ico-img{width:40px;height:40px;border-radius:10px;object-fit:cover;background:rgba(255,255,255,.08);flex-shrink:0}
+.pl b{font-size:.92rem;display:block}
+.pl span{color:var(--m);font-size:.8rem;display:block}
+footer{margin-top:12px;padding:32px 5vw 44px;border-top:1px solid rgba(255,255,255,.06);text-align:center}
+.gh{display:inline-flex;align-items:center;gap:10px;color:var(--t);text-decoration:none;font-weight:700;font-size:.95rem;padding:12px 18px;border-radius:14px;transition:transform .2s,border-color .2s}
+.gh:hover{transform:translateY(-2px);border-color:rgba(232,160,74,.35)}
+.gh svg{width:22px;height:22px;flex-shrink:0}
+.gh .label{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.gh .label small{color:var(--m);font-weight:600;font-size:.8rem}
+
+.prov{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.prov .card{display:flex;flex-direction:column;gap:8px;padding:14px 12px;border-radius:16px;transition:transform .2s,border-color .2s}
+.prov .card:hover{transform:translateY(-2px)}
+.prov .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.prov .name{font-weight:800;font-size:.9rem}
+.prov .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor}
+.prov .dot.on{background:#5dcea0;color:#5dcea0}
+.prov .dot.off{background:#e07070;color:#e07070}
+.prov .dot.na{background:#6a6570;color:#6a6570}
+.prov .meta{font-size:.72rem;color:var(--m)}
+.prov .sk{height:72px;border-radius:16px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.1),rgba(255,255,255,.04));background-size:200% 100%;animation:sh 1.2s ease-in-out infinite}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.rail{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+overscroll-behavior-x:contain;scrollbar-width:none!important;-ms-overflow-style:none!important}
+.rail::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}
+.rail::-webkit-scrollbar-thumb{display:none!important;background:transparent!important}
+.rail::-webkit-scrollbar-track{display:none!important}
+.tile{flex:0 0 120px;scroll-snap-align:start;text-decoration:none;color:var(--t);transition:transform .2s}
+.tile:hover{transform:translateY(-3px)}
+.tile img{width:120px;height:180px;object-fit:cover;border-radius:12px;background:rgba(255,255,255,.06);display:block}
+.tile .cap{margin-top:6px;font-size:.78rem;font-weight:700;line-height:1.3;max-height:2.6em;overflow:hidden}
+.tile .sub2{font-size:.7rem;color:var(--m);margin-top:2px}
+.tr-tile{flex:0 0 168px;max-width:168px}
+.tr-tile .thumb{position:relative;border-radius:12px;overflow:hidden;height:94px;background:#111;display:block}
+.tr-tile .thumb img{width:100%;height:100%;object-fit:cover;display:block;opacity:.9}
+.tr-tile .play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);font-size:1.25rem;pointer-events:none}
+.tr-tile .cap{margin-top:6px;font-size:.72rem;font-weight:700;line-height:1.25;max-height:2.5em;overflow:hidden}
+.tr-tile .actions{display:flex;gap:4px;margin-top:4px}
+.tr-tile .actions a{flex:1;font-size:.62rem;font-weight:800;padding:5px 4px;border-radius:8px;text-decoration:none;text-align:center}
+.tr-tile .actions .s{background:linear-gradient(135deg,#e8a04a,#d4783a);color:#1a0f05}
+.tr-tile .actions .y{background:rgba(255,255,255,.12);color:#fff}
+.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);padding:16px}
+.modal.open{display:flex}
+.modal .inner{width:min(900px,100%);aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;position:relative}
+.modal iframe{width:100%;height:100%;border:0}
+.modal .x{position:absolute;top:-36px;inset-inline-end:0;background:transparent;border:0;color:#fff;font-size:1.4rem;font-weight:700}
+
+.tile{position:relative}
+.tile .hov{position:absolute;inset:0;border-radius:12px;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.85));opacity:0;transition:opacity .2s;display:flex;flex-direction:column;justify-content:flex-end;padding:8px;gap:4px}
+.tile:hover .hov,.tile:focus-within .hov{opacity:1}
+.tile .hov a,.tile .hov button{font-size:.65rem;font-weight:700;padding:5px 6px;border-radius:8px;border:0;text-decoration:none;text-align:center;font-family:inherit;cursor:pointer}
+.tile .hov .s{background:linear-gradient(135deg,#e8a04a,#d4783a);color:#1a0f05}
+.tile .hov .w{background:rgba(255,255,255,.15);color:#fff;backdrop-filter:blur(6px)}
+.tile .poster-wrap{position:relative;width:120px;height:180px;border-radius:12px;overflow:hidden}
+.tr-tile .hov{opacity:0}
+.tr-tile:hover .hov{opacity:1}
+.foot{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center}
+.foot .gh{margin:0}
+
+.feat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:8px 0 20px}
+.feat-card{padding:16px 14px;text-align:center;transition:transform .2s,border-color .2s}
+.feat-card:hover{transform:translateY(-3px);border-color:rgba(232,160,74,.35)}
+.feat-card .ico{width:36px;height:36px;margin:0 auto 8px;border-radius:12px;display:grid;place-items:center;background:rgba(232,160,74,.12);color:var(--a)}
+.feat-card .ico svg{width:20px;height:20px;fill:currentColor}
+.feat-card b{display:block;font-size:.88rem;margin-bottom:4px}
+.feat-card span{font-size:.75rem;color:var(--m);line-height:1.35}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.sec-h .ico{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:var(--a2);flex-shrink:0}
+.sec-h .ico svg{width:16px;height:16px;fill:currentColor}
+.prov .card{transition:transform .18s,border-color .18s}
+.prov .card:hover{transform:translateY(-2px);border-color:rgba(232,160,74,.3)}
+
+.chip.soon{opacity:.85;cursor:default;display:inline-flex;align-items:center;gap:6px;padding:8px 12px}
+.chip.soon .soon-tag{position:static;transform:none;font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:999px;background:rgba(232,160,74,.22);color:var(--a);letter-spacing:.02em;white-space:nowrap;flex-shrink:0}
+.chip.soon:hover{transform:none;border-color:var(--gb)}
+.nav-chips{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;min-width:0}
+@media(max-width:860px){
+  header{padding:10px 3.5vw;gap:10px}
+  .brand span{display:none}
+  .brand img{width:36px;height:36px;border-radius:11px}
+  .nav-chips{gap:6px}
+  .chip{padding:6px 10px;font-size:.75rem}
+  .chip.soon{display:none} /* hero already has support button */
+  .row{gap:8px;justify-content:center}
+  .row .btn{flex:1 1 calc(50% - 8px);min-width:0;padding:12px 12px;font-size:.84rem}
+  .stage{width:min(210px,58vw)}
+  .feat-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .box .r{flex-wrap:wrap}
+  .box input{width:100%}
+}
+@media(max-width:420px){
+  .row .btn{flex:1 1 100%;font-size:.88rem}
+  .chip{padding:6px 9px;font-size:.72rem}
+  header{padding:8px 3vw}
 }
 </style>
 </head>
 <body>
+<div class="bg"></div><div class="stars"></div>
+<div class="neb n1"></div><div class="neb n2"></div>
 <header>
-  <div class="wrap nav">
-    <a class="brand" href="/">
-      <img src="${logo}" alt="CinemaGraphy" width="36" height="36" onerror="this.src='${LOGO_FALLBACK}'"/>
-      <span class="lang-fa">سینماگرافی</span>
-      <span class="lang-en">CinemaGraphy</span>
-    </a>
-    <div class="nav-actions">
-      <span class="ver">v${ver}</span>
-      <button type="button" class="chip" id="langBtn" aria-label="Language">
-        <span class="flag" aria-hidden="true">🇮🇷</span>
-        <span id="langLabel">FA | EN</span>
-      </button>
-      <a class="chip" href="/configure"><span class="lang-fa">شخصی‌سازی</span><span class="lang-en">Configure</span></a>
-      <a class="chip" href="/guide"><span class="lang-fa">راهنما</span><span class="lang-en">Guide</span></a>
-    </div>
-  </div>
+<a class="brand" href="/"><img src="${logo}" alt="Cinemagraphy" onerror="this.src='${LOGO_FALLBACK}'"/><span>سینماگرافی</span></a>
+<div class="nav-chips">
+<a class="chip" href="/guide" style="text-decoration:none"><span class="lang-fa">راهنما</span><span class="lang-en">Guide</span></a>
+<a class="chip" href="/configure" style="text-decoration:none"><span class="lang-fa">شخصی‌سازی</span><span class="lang-en">Configure</span></a>
+<span class="chip soon" title="به‌زودی / Coming soon" role="button" aria-disabled="true">
+  <span class="lang-fa">♥ حمایت مالی</span><span class="lang-en">♥ Support</span>
+  <span class="soon-tag lang-fa">به‌زودی</span><span class="soon-tag lang-en">Soon</span>
+</span>
+<button class="chip" id="langBtn" type="button">EN</button>
+</div>
 </header>
-<main class="wrap">
-  <section class="hero">
-    <img class="logo" src="${logo}" alt="" width="88" height="88" onerror="this.src='${LOGO_FALLBACK}'"/>
-    <h1 class="lang-fa">سینماگرافی</h1>
-    <h1 class="lang-en">CinemaGraphy</h1>
-    <p class="lang-fa">افزونهٔ استریمیو و نوویو برای فیلم و سریال با منابع ایرانی — نصب یک‌مرحله‌ای، شخصی‌سازی و راهنمای کامل.</p>
-    <p class="lang-en">Stremio &amp; Nuvio addon for movies and series with Iranian sources — one-tap install, configure, and full guide.</p>
-    <div class="btns">
-      <a class="btn btn-p" href="${install}"><span class="lang-fa">نصب در استریمیو</span><span class="lang-en">Install in Stremio</span></a>
-      <button type="button" class="btn btn-g" id="copyManifest"><span class="lang-fa">کپی لینک منیفست</span><span class="lang-en">Copy manifest</span></button>
-      <a class="btn btn-g" href="/configure"><span class="lang-fa">شخصی‌سازی</span><span class="lang-en">Configure</span></a>
-    </div>
-    <p class="hint" id="manifestHint">${m}</p>
-    <input type="hidden" id="manifestUrl" value="${m}"/>
-  </section>
+<main>
+<div class="hero">
+<div class="hero-copy">
+<span class="badge">v${ver}</span>
+<h1 class="lang-fa">سینماگرافی<br/><span>فیلم، سریال، انیمه</span></h1>
+<h1 class="lang-en">Cinemagraphy<br/><span>Movies, Series, Anime</span></h1>
+<p class="lead lang-fa">افزونه استریمیو برای تماشای فیلم و سریال از منابع ایرانی و بین‌المللی — کیفیت، حجم و وضعیت سانسور در یک نگاه.</p>
+<p class="lead lang-en">Stremio addon for Iranian &amp; international sources — quality, size and censor status at a glance.</p>
+<div class="row">
+<a class="btn bp" href="${install}"><span class="lang-fa">نصب در نوویو و استریمیو</span><span class="lang-en">Install in Nuvio &amp; Stremio</span></a>
+<button class="btn bp" id="manifestCopyBtn" type="button"><span class="lang-fa">لینک منیفست</span><span class="lang-en">Manifest link</span></button>
+<a class="btn bp" href="/configure" style="background:rgba(255,255,255,.1);color:var(--t);box-shadow:none;border:1px solid var(--gb)"><span class="lang-fa">شخصی‌سازی</span><span class="lang-en">Configure</span></a>
+<a class="btn bp" href="/guide" style="background:rgba(255,255,255,.08);color:var(--t);box-shadow:none;border:1px solid var(--gb)"><span class="lang-fa">📖 راهنما</span><span class="lang-en">📖 Guide</span></a>
+<button class="btn bp" type="button" disabled style="opacity:.72;cursor:default;background:rgba(232,160,74,.12);color:var(--a);box-shadow:none;border:1px solid rgba(232,160,74,.35)" title="به‌زودی — حمایت از ایران و خارج (کریپتو و …)"><span class="lang-fa">♥ حمایت مالی · به‌زودی</span><span class="lang-en">♥ Support · Soon</span></button>
+</div>
+<input type="hidden" id="manifestUrl" value="${m}"/>
+</div>
+<div class="vis"><div class="stage"><div class="gwrap glass"><img src="${logo}" alt="logo" onerror="this.src='${LOGO_FALLBACK}'"/></div></div></div>
+</div>
 
-  <section>
-    <h2 class="lang-fa">امکانات</h2>
-    <h2 class="lang-en">Features</h2>
-    <div class="grid feat">
-      <div class="card"><div><b class="lang-fa">چند پروایدر</b><b class="lang-en">Multi-provider</b><span class="lang-fa">جستجوی موازی از منابع ایرانی</span><span class="lang-en">Parallel search across IR sources</span></div></div>
-      <div class="card"><div><b class="lang-fa">متای فارسی</b><b class="lang-en">Persian meta</b><span class="lang-fa">عنوان و پوستر وقتی شبکه اجازه دهد</span><span class="lang-en">Titles &amp; posters when network allows</span></div></div>
-      <div class="card"><div><b class="lang-fa">شخصی‌سازی</b><b class="lang-en">Configure</b><span class="lang-fa">کاتالوگ و کلیدها در منیفست اختصاصی</span><span class="lang-en">Catalogs &amp; keys in your own manifest</span></div></div>
-      <div class="card"><div><b class="lang-fa">استریمیو و نوویو</b><b class="lang-en">Stremio &amp; Nuvio</b><span class="lang-fa">سازگار با منیفست استریمیو</span><span class="lang-en">Stremio-manifest compatible</span></div></div>
-    </div>
-  </section>
+<section>
+<div class="feat-row">
+<div class="feat-card glass"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg></div><b class="lang-fa">منابع ایرانی</b><b class="lang-en">Iran sources</b><span class="lang-fa">چند پروایدر موازی</span><span class="lang-en">Parallel providers</span></div>
+<div class="feat-card glass"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3v12.5l4-4 1.4 1.4L12 19.3l-5.4-6.4L8 11.5l4 4V3z"/></svg></div><b class="lang-fa">متای فارسی</b><b class="lang-en">Persian meta</b><span class="lang-fa">TMDB fa-IR</span><span class="lang-en">TMDB fa-IR</span></div>
+<div class="feat-card glass"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 1a9 9 0 0 0-9 9c0 6 9 13 9 13s9-7 9-13a9 9 0 0 0-9-9zm0 12a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg></div><b class="lang-fa">شخصی‌سازی</b><b class="lang-en">Configure</b><span class="lang-fa">منیفست اختصاصی</span><span class="lang-en">Custom manifest</span></div>
+<div class="feat-card glass"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 15h-2v-2h2zm0-4h-2V7h2z"/></svg></div><b class="lang-fa">راهنما</b><b class="lang-en">Guide</b><span class="lang-fa">آموزش نصب</span><span class="lang-en">Setup help</span></div>
+</div>
+</section>
+<section>
+<h2 class="lang-fa">دانلود کلاینت</h2><h2 class="lang-en">Download clients</h2>
+<p class="sub lang-fa">سینماگرافی روی <b>Stremio</b> و <b>Nuvio</b> (سازگار با منیفست استریمیو) کار می‌کند. هر دو را می‌توانید نصب کنید.</p>
+<p class="sub lang-en">CinemaGraphy works on <b>Stremio</b> and <b>Nuvio</b> (Stremio-manifest compatible).</p>
 
-  <section>
-    <h2 class="lang-fa">کلاینت‌ها</h2>
-    <h2 class="lang-en">Clients</h2>
-    <div class="box">
-      <h3>Stremio</h3>
-      <div class="clients">
-        <a href="https://www.stremio.com/downloads" target="_blank" rel="noopener">Windows</a>
-        <a href="https://www.stremio.com/downloads" target="_blank" rel="noopener">macOS</a>
-        <a href="https://www.stremio.com/downloads" target="_blank" rel="noopener">Linux</a>
-        <a href="https://www.stremio.com/downloads" target="_blank" rel="noopener">Android</a>
-        <a href="https://web.stremio.com/" target="_blank" rel="noopener"><span class="lang-fa">وب</span><span class="lang-en">Web</span></a>
-      </div>
-    </div>
-    <div class="box">
-      <h3>Nuvio <span style="color:var(--ok);font-size:.8rem" class="lang-fa">پیشنهادی</span><span style="color:var(--ok);font-size:.8rem" class="lang-en">Recommended</span></h3>
-      <div class="clients">
-        <a href="https://nuvio.tv" target="_blank" rel="noopener"><span class="lang-fa">سایت نوویو</span><span class="lang-en">Nuvio site</span></a>
-      </div>
-    </div>
-  </section>
+<div class="glass" style="padding:14px 16px;margin-bottom:14px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+<img src="https://www.google.com/s2/favicons?domain=stremio.com&sz=64" width="28" height="28" alt="" style="border-radius:8px"/>
+<b class="lang-fa">Stremio</b><b class="lang-en">Stremio</b>
+<span class="muted" style="font-size:.85rem">— <span class="lang-fa">کلاسیک و پایدار</span><span class="lang-en">classic &amp; stable</span></span>
+</div>
+<div class="g">
+<a class="p glass" href="https://www.stremio.com/downloads" target="_blank" rel="noopener">Windows</a>
+<a class="p glass" href="https://www.stremio.com/downloads" target="_blank" rel="noopener">macOS</a>
+<a class="p glass" href="https://www.stremio.com/downloads" target="_blank" rel="noopener">Linux</a>
+<a class="p glass" href="https://www.stremio.com/downloads" target="_blank" rel="noopener">Android</a>
+<a class="p glass" href="https://apps.apple.com/app/stremio/id1297124690" target="_blank" rel="noopener">iOS / tvOS</a>
+<a class="p glass" href="https://web.stremio.com/" target="_blank" rel="noopener"><span class="lang-fa">وب‌اپ</span><span class="lang-en">Web</span></a>
+</div>
+</div>
 
-  <section>
-    <h2 class="lang-fa">افزونه‌های پیشنهادی</h2>
-    <h2 class="lang-en">Recommended addons</h2>
-    <div class="grid">${addonCards}</div>
-  </section>
+<div class="glass rec-nuvio" style="padding:16px 18px;margin-bottom:8px;position:relative;overflow:hidden">
+<div class="rec-badge"><span class="lang-fa">پیشنهاد ما</span><span class="lang-en">Recommended</span></div>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+<img src="https://nuvio.tv/assets/Logo_1080x1080.png" width="32" height="32" alt="" style="border-radius:10px;object-fit:cover;box-shadow:0 0 18px rgba(126,182,255,.45)" onerror="this.src='https://www.google.com/s2/favicons?domain=nuvio.tv&sz=64'"/>
+<b style="font-size:1.05rem">Nuvio</b>
+<span class="muted" style="font-size:.85rem">— <span class="lang-fa">سریع‌تر، پایدارتر، قابل‌سفارشی‌سازی</span><span class="lang-en">faster, more stable, customizable</span></span>
+</div>
+<p class="sub lang-fa" style="margin-bottom:10px">کلاینت مدرن سازگار با منیفست استریمیو. دانلود داخل اپ، پروفایل چندگانه و چیدمان دلخواه کاتالوگ. UI رسمی هنوز فارسی کامل ندارد؛ محتوای سینماگرافی فارسی است. جزئیات در <a href="/guide">راهنما</a>.</p>
+<p class="sub lang-en" style="margin-bottom:10px">Modern Stremio-compatible client with in-app download and catalog layout control. See <a href="/guide">guide</a>.</p>
+<div class="g">
+<a class="p glass" href="https://nuvio.tv" target="_blank" rel="noopener"><span class="lang-fa">سایت رسمی</span><span class="lang-en">Official site</span></a>
+<a class="p glass" href="https://github.com/NuvioMedia/NuvioMobile/releases/latest" target="_blank" rel="noopener">Android</a>
+<a class="p glass" href="https://github.com/NuvioMedia/NuvioTV/releases/latest" target="_blank" rel="noopener">Android TV</a>
+<a class="p glass" href="https://testflight.apple.com/join/u4y7MHK9" target="_blank" rel="noopener">iOS TestFlight</a>
+<a class="p glass" href="https://github.com/NuvioMedia/NuvioDesktop/releases/latest" target="_blank" rel="noopener">Desktop</a>
+<a class="p glass" href="https://play.google.com/store/apps/details?id=com.nuvio.app" target="_blank" rel="noopener">Play Store</a>
+</div>
+</div>
+</section>
+
+
+<section id="sec-trend-day">
+<h2 class="lang-fa">🔥 محبوب امروز</h2><h2 class="lang-en">🔥 Trending today</h2>
+<div class="rail" id="railDay"><div class="sk glass" style="min-width:120px;height:180px"></div></div>
+</section>
+<section id="sec-trend-week">
+<h2 class="lang-fa">🔥 محبوب این هفته</h2><h2 class="lang-en">🔥 Trending this week</h2>
+<div class="rail" id="railWeek"><div class="sk glass" style="min-width:120px;height:180px"></div></div>
+</section>
+<section id="sec-now">
+<h2 class="lang-fa">🎬 در سالن نمایش</h2><h2 class="lang-en">🎬 Now playing</h2>
+<div class="rail" id="railNow"><div class="sk glass" style="min-width:120px;height:180px"></div></div>
+</section>
+<section id="sec-trailers">
+<h2 class="lang-fa">▶️ آخرین تریلرها</h2><h2 class="lang-en">▶️ Latest trailers</h2>
+<div class="rail" id="railTrailers"><div class="sk glass" style="min-width:220px;height:124px"></div></div>
+</section>
+<div class="modal" id="trailerModal" role="dialog" aria-modal="true">
+  <div class="inner">
+    <button class="x" type="button" id="trailerClose" aria-label="Close">×</button>
+    <iframe id="trailerFrame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+  </div>
+</div>
+<section>
+<h2 class="lang-fa">منابع</h2><h2 class="lang-en">Sources</h2>
+<div class="prov" id="providerGrid" aria-live="polite">
+<div class="sk glass"></div><div class="sk glass"></div><div class="sk glass"></div><div class="sk glass"></div>
+</div>
+</section>
+
+<section>
+<h2 class="lang-fa">افزونه‌های پیشنهادی</h2><h2 class="lang-en">Recommended addons</h2>
+<p class="sub lang-fa">بر اساس محبوبیت جامعه استریمیو.</p>
+<p class="sub lang-en">Based on community popularity.</p>
+<div class="pl">
+${addonCards}
+</div>
+</section>
 </main>
 <footer>
-  <div class="wrap">
-    <p class="lang-fa">با احترام به آقای محبّی · نسخه ${ver}</p>
-    <p class="lang-en">With respect to Mr. Mohebbi · v${ver}</p>
-    <p style="margin-top:8px">
-      <a href="${GITHUB_URL}" target="_blank" rel="noopener">GitHub</a>
-      ·
-      <a href="${TELEGRAM_CHANNEL}" target="_blank" rel="noopener">Telegram</a>
-      ·
-      <a href="${TELEGRAM_SUPPORT}" target="_blank" rel="noopener"><span class="lang-fa">پشتیبانی</span><span class="lang-en">Support</span></a>
-    </p>
-  </div>
+<div class="foot">
+<a class="gh glass" href="${GITHUB_URL}" target="_blank" rel="noopener" aria-label="GitHub">
+<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.11.82-.26.82-.58 0-.28-.01-1.02-.02-2-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.66-.3-5.46-1.33-5.46-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.81 1.1.81 2.22 0 1.6-.01 2.89-.01 3.29 0 .32.22.7.83.58C20.56 21.8 24 17.3 24 12 24 5.37 18.63 0 12 0z"/></svg>
+<span class="label"><span class="lang-fa">گیت‌هاب</span><span class="lang-en">GitHub</span></span>
+</a>
+<a class="gh glass" href="${TELEGRAM_CHANNEL}" target="_blank" rel="noopener" aria-label="Telegram">
+<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" aria-hidden="true"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 6.46-1.55 7.33c-.12.52-.43.65-.87.4l-2.4-1.77-1.16 1.12c-.13.13-.24.24-.49.24l.17-2.45 4.47-4.04c.19-.17-.04-.27-.3-.1l-5.53 3.48-2.38-.74c-.52-.16-.53-.52.11-.77l9.3-3.58c.43-.16.81.1.67.78z"/></svg>
+<span class="label"><span class="lang-fa">کانال تلگرام سینماگرافی</span><span class="lang-en">CinemaGraphy channel</span></span>
+</a>
+<a class="gh glass" href="${TELEGRAM_SUPPORT}" target="_blank" rel="noopener" aria-label="Support">
+<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" aria-hidden="true"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12zM7 9h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/></svg>
+<span class="label"><span class="lang-fa">پشتیبانی</span><span class="lang-en">Support</span></span>
+</a>
+</div>
 </footer>
 <script>
 (function(){
-  var root=document.documentElement;
-  var btn=document.getElementById('langBtn');
-  var label=document.getElementById('langLabel');
-  function apply(lang){
-    root.setAttribute('data-lang',lang);
-    root.setAttribute('lang',lang==='en'?'en':'fa');
-    root.setAttribute('dir',lang==='en'?'ltr':'rtl');
-    if(label) label.textContent=lang==='en'?'EN | FA':'FA | EN';
-    try{localStorage.setItem('cg_lang',lang)}catch(e){}
-  }
-  var saved=null;
-  try{saved=localStorage.getItem('cg_lang')}catch(e){}
-  apply(saved==='en'?'en':'fa');
-  if(btn) btn.addEventListener('click',function(){
-    apply(root.getAttribute('data-lang')==='fa'?'en':'fa');
-  });
-  var copy=document.getElementById('copyManifest');
-  var inp=document.getElementById('manifestUrl');
-  if(copy&&inp){
-    copy.addEventListener('click',function(){
-      var v=inp.value||'';
-      function ok(){
-        var fa=root.getAttribute('data-lang')!=='en';
-        copy.textContent=fa?'کپی شد':'Copied';
-        setTimeout(function(){copy.innerHTML=fa?'<span class="lang-fa">کپی لینک منیفست</span>':'<span class="lang-en">Copy manifest</span>';apply(root.getAttribute('data-lang'))},1200);
+const r=document.documentElement,lb=document.getElementById('langBtn');
+let L=localStorage.getItem('cg-lang')||'fa';
+var tmdbCache=null;
+function al(l){
+  r.lang=l;r.dir=l==='fa'?'rtl':'ltr';
+  if(lb)lb.textContent=l==='fa'?'EN':'FA';
+  localStorage.setItem('cg-lang',l);
+  if(tmdbCache) renderTmdb(tmdbCache);
+}
+al(L);if(lb)lb.onclick=()=>al(r.lang==='fa'?'en':'fa');
+const inp=document.getElementById('manifestUrl');
+async function copyManifest(btn){
+  if(!inp)return;
+  const fa=r.lang==='fa';
+  const prev=btn.innerHTML;
+  try{
+    await navigator.clipboard.writeText(inp.value);
+    btn.classList.add('ok');
+    btn.innerHTML=fa?'کپی شد ✓':'Copied ✓';
+    setTimeout(()=>{btn.classList.remove('ok');btn.innerHTML=prev},1800);
+  }catch{}
+}
+const mb=document.getElementById('manifestCopyBtn');
+if(mb)mb.onclick=()=>copyManifest(mb);
+
+async function loadProviders(){
+  const grid=document.getElementById('providerGrid');
+  if(!grid)return;
+  const fa=document.documentElement.lang==='fa';
+  try{
+    const res=await fetch('/providers.json',{credentials:'omit'});
+    if(!res.ok)throw new Error('bad status');
+    const data=await res.json();
+    const list=Array.isArray(data.providers)?data.providers:[];
+    if(!list.length){
+      grid.innerHTML='<p class="sub">'+(fa?'منبعی پیکربندی نشده.':'No providers configured.')+'</p>';
+      return;
+    }
+    grid.innerHTML=list.map(function(p){
+      var status, cls, label;
+      if(!p.configured){
+        cls='na'; status=fa?'پیکربندی نشده':'Not configured'; label=fa?'غیرفعال':'Off';
+      }else if(p.online){
+        cls='on'; status=fa?'آنلاین':'Online'; label=fa?'آنلاین':'Online';
+      }else{
+        cls='off'; status=fa?'آفلاین':'Offline'; label=fa?'آفلاین':'Offline';
       }
-      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(ok).catch(function(){});
-      else ok();
+      var lat=(p.online && p.latencyMs!=null)?(' · '+p.latencyMs+'ms'):'';
+      return '<div class="card glass">'+
+        '<div class="top"><span class="name">'+esc(p.name||p.key)+'</span><span class="dot '+cls+'" title="'+esc(status)+'"></span></div>'+
+        '<div class="meta">'+esc(label)+lat+'</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){
+    grid.innerHTML='<p class="sub">'+(fa?'دریافت وضعیت ممکن نشد.':'Could not load provider status.')+'</p>';
+  }
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+loadProviders();
+
+function detailId(item){
+  if(item.imdbId) return String(item.imdbId);
+  return 'tmdb:'+item.id;
+}
+function localizeItem(item){
+  var en=document.documentElement.lang==='en';
+  var o=Object.assign({}, item);
+  o.title = en
+    ? (item.titleEn || item.title || item.originalTitle || '')
+    : (item.titleFa || item.title || item.originalTitle || '');
+  o.poster = en
+    ? (item.posterEn || item.poster || item.posterFa || '')
+    : (item.posterFa || item.poster || item.posterEn || '');
+  o.backdrop = en
+    ? (item.backdropEn || item.backdrop || item.backdropFa || '')
+    : (item.backdropFa || item.backdrop || item.backdropEn || '');
+  o.overview = en
+    ? (item.overviewEn || item.overview || '')
+    : (item.overviewFa || item.overview || '');
+  return o;
+}
+function stremioDetailLinks(item){
+  var mt=item.mediaType==='tv'?'series':'movie';
+  var id=detailId(item);
+  var webApp='https://web.stremio.com/#/detail/'+mt+'/'+encodeURIComponent(id);
+  var app='stremio://detail/'+mt+'/'+id;
+  var lang=document.documentElement.lang==='en'?'en-US':'fa-IR';
+  var tmdb=item.mediaType==='tv'
+    ?('https://www.themoviedb.org/tv/'+item.id+'?language='+lang)
+    :('https://www.themoviedb.org/movie/'+item.id+'?language='+lang);
+  return {mt:mt,id:id,webApp:webApp,app:app,tmdb:tmdb};
+}
+function tileHtml(raw){
+  var item=localizeItem(raw);
+  var title=esc(item.title||item.originalTitle||'');
+  var sub=[item.year,item.rating!=null?('★ '+item.rating):''].filter(Boolean).join(' · ');
+  var L=stremioDetailLinks(item);
+  var img=item.poster
+    ?('<img src="'+esc(item.poster)+'" alt="" loading="lazy"/>')
+    :'<div style="width:100%;height:100%;background:rgba(255,255,255,.06)"></div>';
+  var fa=document.documentElement.lang==='fa';
+  return '<div class="tile">'+
+    '<div class="poster-wrap">'+img+
+      '<div class="hov">'+
+        '<a class="s" href="'+esc(L.webApp)+'" target="_blank" rel="noopener">'+(fa?'استریمیو وب':'Stremio web')+'</a>'+
+        '<a class="s s-nuvio" href="https://nuvio.tv" target="_blank" rel="noopener">Nuvio</a>'+
+        '<a class="w" href="'+esc(L.tmdb)+'" target="_blank" rel="noopener">TMDB</a>'+
+      '</div>'+
+    '</div>'+
+    '<div class="cap">'+title+'</div>'+(sub?'<div class="sub2">'+esc(sub)+'</div>':'')+
+  '</div>';
+}
+function fillRail(id, items){
+  var el=document.getElementById(id);
+  if(!el)return;
+  if(!items||!items.length){el.innerHTML='<p class="sub">—</p>';return;}
+  el.innerHTML=items.map(tileHtml).join('');
+}
+function fillTrailers(items){
+  var el=document.getElementById('railTrailers');
+  if(!el)return;
+  if(!items||!items.length){el.innerHTML='<p class="sub">—</p>';return;}
+  var fa=document.documentElement.lang==='fa';
+  el.innerHTML=items.map(function(raw){
+    var item=localizeItem(raw);
+    var title=esc(item.title||item.originalTitle||'');
+    var bg=item.backdrop||item.poster||'';
+    var key=item.trailer&&item.trailer.key;
+    var yt=key?('https://www.youtube.com/watch?v='+encodeURIComponent(key)):'#';
+    var L=stremioDetailLinks(item);
+    return '<div class="tile tr-tile">'+
+      '<a class="thumb" href="'+esc(yt)+'" target="_blank" rel="noopener" title="YouTube">'+
+        (bg?'<img src="'+esc(bg)+'" alt="" loading="lazy"/>':'')+
+        '<div class="play">▶</div>'+
+      '</a>'+
+      '<div class="cap" title="'+title+'">'+title+'</div>'+
+      '<div class="actions">'+
+        '<a class="s" href="'+esc(L.webApp)+'" target="_blank" rel="noopener">'+(fa?'استریمیو':'Stremio')+'</a>'+
+        '<a class="s" href="https://nuvio.tv" target="_blank" rel="noopener">Nuvio</a>'+
+        '<a class="y" href="'+esc(yt)+'" target="_blank" rel="noopener">YT</a>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+function renderTmdb(data){
+  if(!data)return;
+  fillRail('railDay', data.trendingDay);
+  fillRail('railWeek', data.trendingWeek);
+  fillRail('railNow', data.nowPlaying);
+  fillTrailers(data.trailers);
+}
+(function(){
+  var modal=document.getElementById('trailerModal');
+  var frame=document.getElementById('trailerFrame');
+  var close=document.getElementById('trailerClose');
+  function shut(){if(modal)modal.classList.remove('open');if(frame)frame.src='';}
+  if(close)close.onclick=shut;
+  if(modal)modal.addEventListener('click',function(e){if(e.target===modal)shut();});
+})();
+async function loadTmdb(){
+  try{
+    var res=await fetch('/tmdb/landing.json',{credentials:'omit'});
+    if(!res.ok)throw new Error('bad');
+    var data=await res.json();
+    tmdbCache=data;
+    renderTmdb(data);
+  }catch(e){
+    tmdbCache=null;
+    ['railDay','railWeek','railNow','railTrailers'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.innerHTML='';
     });
   }
+}
+loadTmdb();
+
+function bindRailWheel(){
+  document.querySelectorAll('.rail').forEach(function(rail){
+    rail.addEventListener('wheel', function(e){
+      if(Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+      if(rail.scrollWidth <= rail.clientWidth + 4) return;
+      e.preventDefault();
+      rail.scrollLeft += e.deltaY;
+    }, {passive:false});
+  });
+}
+bindRailWheel();
+
+
+
 })();
 </script>
 </body></html>`
@@ -328,16 +636,16 @@ linear-gradient(180deg,#050508,#0a0612 40%,#12081c)}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.55;z-index:0;
 background-image:radial-gradient(1.5px 1.5px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 70% 40%,#fff,transparent),radial-gradient(1.5px 1.5px at 50% 15%,#ffe9c4,transparent)}
 a{color:var(--a2)}
-.wrap{max-width:920px;margin:0 auto;position:relative;z-index:1;max-width:880px;width:100%;margin:0 auto;padding:20px 4.5vw 48px}
+.wrap{position:relative;z-index:1;max-width:880px;width:100%;margin:0 auto;padding:20px 4.5vw 48px}
 header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;max-width:100%}
 .brand{display:flex;gap:10px;align-items:center;color:var(--t);text-decoration:none;font-weight:800;min-width:0}
 .brand span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brand img{width:36px;height:36px;border-radius:10px;flex-shrink:0;box-shadow:0 0 16px var(--gl)}
-.chip{border:1px solid var(--gb);background:var(--g);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:var(--t);border-radius:999px;padding:8px 12px;text-decoration:none;font-weight:600;font-size:.82rem;font-family:inherit;cursor:pointer;white-space:nowrap}
+.chip{border:1px solid var(--gb);background:var(--g);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--t);border-radius:999px;padding:8px 12px;text-decoration:none;font-weight:600;font-size:.82rem;font-family:inherit;cursor:pointer;white-space:nowrap}
 h1{font-size:clamp(1.25rem,5vw,1.75rem);font-weight:900;margin:8px 0;overflow-wrap:anywhere}
 h2{font-size:1.05rem;margin:0 0 10px;overflow-wrap:anywhere}
 .sub{color:var(--m);margin-bottom:14px;font-size:.92rem;overflow-wrap:anywhere}
-.glass{background:var(--g);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--gb);border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)}
+.glass{background:var(--g);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);border:1px solid var(--gb);border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:12px;font-weight:800;font-size:.88rem;text-decoration:none;border:none;cursor:pointer;font-family:inherit;max-width:100%}
 .bp{background:linear-gradient(135deg,#e8a04a,#d4783a);color:#1a0f05}
 .bp.ok{background:linear-gradient(135deg,#5dcea0,#3aa87a)}
@@ -1139,8 +1447,8 @@ details.faq summary{cursor:pointer;font-weight:700}
 <span class="lang-en">Add each variable (Env table). Mark keys/cookies as <b>Secret</b> so code deploys do not wipe them.</span>
 </div>
 <div class="step"><b>5</b>
-<span class="lang-fa">منیفست: <code>https://cmplugin.ir/manifest.json</code></span>
-<span class="lang-en">Manifest: <code>https://cmplugin.ir/manifest.json</code></span>
+<span class="lang-fa">منیفست: <code>https://YOUR-NAME.workers.dev/manifest.json</code></span>
+<span class="lang-en">Manifest: <code>https://YOUR-NAME.workers.dev/manifest.json</code></span>
 </div>
 </div>
 
