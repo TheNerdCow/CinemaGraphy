@@ -24,7 +24,7 @@ export function isAnimexCatalogEnabled(env = {}) {
 }
 
 export function animexCatalogBase(env = {}) {
-  return String(env.ANIMEX_BASEURL || 'https://animex.click').trim().replace(/\/+$/, '') || 'https://animex.click'
+  return String(env.ANIMEX_BASEURL || 'https://animex.my').trim().replace(/\/+$/, '') || 'https://animex.my'
 }
 
 export function animexCatalogDisplayName(lang = 'fa') {
@@ -77,12 +77,12 @@ function latinQuery(title, slug) {
   return t.replace(/[\u0600-\u06FF]/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-async function httpGetText(url, httpClient, timeout = 18000) {
+async function httpGetText(url, httpClient, timeout = 18000, referer = 'https://animex.my/') {
   const headers = {
     Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Accept-Language': 'fa-IR,fa;q=0.9,en;q=0.8',
-    Referer: 'https://animex.click/',
+    Referer: referer || 'https://animex.my/',
   }
   if (httpClient?.get) {
     const res = await httpClient.get(url, {
@@ -200,7 +200,7 @@ async function scrapeAnimexList(env, httpClient) {
   for (let page = 1; page <= 4; page++) {
     const url = page === 1 ? base + '/anime/' : base + '/anime/page/' + page + '/'
     try {
-      const html = await httpGetText(url, httpClient, 18000)
+      const html = await httpGetText(url, httpClient, 18000, base + '/')
       if (!html || html.length < 300) break
       const pageItems = parseListingHtml(html, base)
       if (!pageItems.length) break
