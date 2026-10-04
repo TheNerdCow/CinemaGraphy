@@ -370,11 +370,14 @@ async function metaResponse(route, providers, services, env, requestUrl, logger,
         }
         if (!movieData) return json({})
 
-        let upstreamMeta = parsedId.provider.metadataSource === METADATA_SOURCE.PROVIDER
-            ? {meta: await parsedId.provider.getMeta(route.type, parsedId.providerItemId, movieData)}
-            : await services.getCinemeta(route.type, await parsedId.provider.imdbID(movieData, route.type))
-
-        // No IMDb/Cinemeta (typical for Animex anime) → build meta + episode list from links
+        const isAnimexProvider = parsedId.provider?.key === 'animex'
+        let upstreamMeta = null
+        if (!isAnimexProvider) {
+            upstreamMeta = parsedId.provider.metadataSource === METADATA_SOURCE.PROVIDER
+                ? {meta: await parsedId.provider.getMeta(route.type, parsedId.providerItemId, movieData)}
+                : await services.getCinemeta(route.type, await parsedId.provider.imdbID(movieData, route.type))
+        }
+        // Animex (and any anime without reliable IMDb): build meta from site title + links — never Cinemeta first
         if (!upstreamMeta?.meta && movieData) {
             const title = String(movieData.title || '').trim() || 'Anime'
             const links = Array.isArray(movieData.links) ? movieData.links : []
@@ -420,9 +423,11 @@ async function metaResponse(route, providers, services, env, requestUrl, logger,
                         const kTokens = String(kt).toLowerCase().split(/[^a-z0-9]+/).filter((x) => x.length > 2)
                         const hits = qTokens.filter((x) => kTokens.includes(x)).length
                         const similar = hits >= Math.min(2, qTokens.length) || String(kt).toLowerCase().includes(qTokens[0] || '___')
-                        if (kt && similar && (title.length < 4 || /^[a-z0-9 -]+$/i.test(title))) {
+                        // Keep Animex/site title; Kitsu only fills art/description (avoids Soul Land-style mismatches)
+                        if (kt && similar && title.length < 4) {
                             movieData.title = kt
                         }
+
                     }
                 }
             } catch {}
