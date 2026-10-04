@@ -532,8 +532,13 @@ export default class Animex extends HtmlSource {
                 }
             }
 
+            // Anime pages often embed unrelated IMDb widgets → Cinemeta then shows wrong show (e.g. Soul Land).
+            // Prefer site title + Kitsu art; only keep IMDb for non-anime detail paths.
             const imdbHref = $('a[href*="imdb.com/title/tt"]').first().attr('href') ?? ''
-            const imdbId = imdbHref.match(/\/title\/(tt\d+)/)?.[1] ?? null
+            let imdbId = imdbHref.match(/\/title\/(tt\d+)/)?.[1] ?? null
+            if (String(path || '').startsWith('/anime/')) {
+                imdbId = null
+            }
             // Site uses <h1>انیمکس</h1> on every page — prefer og:title / entry-title / <title>
             const ogTitle = normalizeText($('meta[property="og:title"]').attr('content'))
                 .replace(/\s*[–—|-]\s*انیمکس\s*$/i, '')
