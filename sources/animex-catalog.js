@@ -18,9 +18,8 @@ function flagOff(v) {
 }
 
 export function isAnimexCatalogEnabled(env = {}) {
-  if (flagOff(env.ENABLE_ANIMEX_CATALOG)) return false
-  if (flagOn(env.ENABLE_ANIMEX_CATALOG)) return true
-  return Boolean(String(env.ANIMEX_BASEURL || '').trim())
+  // Catalog removed from product (unstable meta/streams on CDN). Provider search may still work if BASEURL set.
+  return false
 }
 
 export function animexCatalogBase(env = {}) {
