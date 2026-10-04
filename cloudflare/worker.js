@@ -454,9 +454,24 @@ async function metaResponse(route, providers, services, env, requestUrl, logger,
             } catch {}
         }
 
+        // Animex: never let upstream rename the title (Nuvio/Cinemeta mismatches)
+        if (isAnimexProvider && movieData) {
+            const siteTitle = String(movieData.title || '').trim()
+            if (siteTitle) result.meta.name = siteTitle
+            delete result.meta.imdb_id
+            delete result.meta.imdbId
+            if (!result.meta.description) result.meta.description = siteTitle
+        }
         if (route.type === 'series') {
-            const videos = mergeSeriesVideos(result.meta.videos, movieData?.links)
-            result.meta.videos = videos.filter((v) => v?.id).map((v) => ({...v, id: `${ADDON_PREFIX}${parsedId.provider.providerID}${parsedId.providerItemId}${ID_SEPARATOR}${v.id}`}))
+            let videos = mergeSeriesVideos(result.meta.videos, movieData?.links)
+            if ((!videos || !videos.length) && isAnimexProvider) {
+                const n = 12
+                videos = []
+                for (let e = 1; e <= n; e++) {
+                    videos.push({ id: `1:${e}`, title: `S1E${String(e).padStart(2, '0')}`, season: 1, episode: e, released: '2000-01-01' })
+                }
+            }
+            result.meta.videos = (videos || []).filter((v) => v?.id).map((v) => ({...v, id: `${ADDON_PREFIX}${parsedId.provider.providerID}${parsedId.providerItemId}${ID_SEPARATOR}${v.id}`}))
             result.meta.id = route.id
         } else {
             result.meta.id = `${ADDON_PREFIX}${parsedId.provider.providerID}${parsedId.providerItemId}${ID_SEPARATOR}${result.meta.id}`
