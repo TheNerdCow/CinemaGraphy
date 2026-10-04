@@ -1,127 +1,117 @@
 <div align="center">
-  <img src="./logo.png" alt="Cinemagraphy" width="128" height="128" />
-  <h1>سینماگرافی — Cinemagraphy</h1>
-  <p>
-    <b>افزونهٔ رایگان استریمیو برای فیلم، سریال، انیمه و منابع ایرانی</b><br/>
-    Free Stremio addon — Iranian sources, Persian metadata, optional torrents &amp; IPTV
-  </p>
-  <p>
-    <a href="https://cmplugin.ir/"><img src="https://img.shields.io/badge/site-cmplugin.ir-e50914?style=for-the-badge" alt="Site" /></a>
-    <a href="https://cmplugin.ir/manifest.json"><img src="https://img.shields.io/badge/manifest-install-blue?style=for-the-badge" alt="Manifest" /></a>
-    <a href="https://cmplugin.ir/configure"><img src="https://img.shields.io/badge/configure-custom-orange?style=for-the-badge" alt="Configure" /></a>
-  </p>
-  <p>
-    <img src="https://img.shields.io/badge/version-2.1.51-blue.svg" alt="2.1.51" />
-    <img src="https://img.shields.io/badge/vercel-ready-black.svg" alt="Vercel" />
-    <img src="https://img.shields.io/badge/Nuvio-compatible-7eb6ff.svg" alt="Nuvio" />
-    <img src="https://img.shields.io/badge/FA%20%7C%20EN-supported-5dcea0.svg" alt="FA EN" />
-    <img src="https://img.shields.io/badge/license-ISC-lightgrey.svg" alt="ISC" />
-  </p>
+
+<img src="logo.png" alt="CinemaGraphy" width="100"/>
+
+# سینماگرافی · CinemaGraphy
+
+🇮🇷 افزونهٔ **استریمیو** و **نوویو** برای فیلم و سریال با منابع ایرانی
+
+[![version](https://img.shields.io/badge/version-3.2.17-e8a04a?style=flat-square)](#)
+[![Stremio](https://img.shields.io/badge/Stremio%20%7C%20Nuvio-addon-6ea8ff?style=flat-square)](#)
+[![Deploy](https://img.shields.io/badge/Cloudflare%20%7C%20Local-ready-3ecf8e?style=flat-square)](#)
+
+**زبان:** [فارسی](#فارسی) · [English](#english)
+
 </div>
 
 ---
 
-## 🇮🇷 نصب سریع
+<a id="فارسی"></a>
 
-1. [Stremio](https://www.stremio.com/downloads) یا **[Nuvio](https://nuvio.tv)** را نصب کنید  
-2. منیفست عمومی:
+## فارسی
 
-```text
-https://cmplugin.ir/manifest.json
+### این پروژه چیست؟
+
+**سینماگرافی** یک افزونه برای برنامه‌های **Stremio** و **Nuvio** است.
+هدفش این است که بتوانید از منابع ایرانی فیلم و سریال را در همان اپ جست‌وجو و پخش کنید — بدون پیچیدگی اضافه.
+
+### امکانات
+
+- جست‌وجوی چند پروایدر به‌صورت موازی
+- متا و پوستر فارسی (وقتی شبکه به TMDB برسد)
+- صفحهٔ **شخصی‌سازی** برای ساخت منیفست اختصاصی
+- اجرا روی **لوکال**، **Cloudflare Worker** یا Vercel
+- راهنمای نصب فارسی / انگلیسی داخل سایت
+
+### نصب سریع
+
+| نوع | لینک |
+|-----|------|
+| سایت | https://cmplugin.ir |
+| منیفست | https://cmplugin.ir/manifest.json |
+| شخصی‌سازی | https://cmplugin.ir/configure |
+| راهنما | https://cmplugin.ir/guide |
+
+در استریمیو: **Addons → Community / URL** و منیفست بالا را وارد کنید.
+
+### اجرای لوکال
+
+1. Node.js ۱۸ یا بالاتر
+2. `npm install`
+3. فایل `.env` کنار `index.js`
+4. اجرا:
+
+```bash
+npm start
+# یا
+node --env-file=.env ./index.js
 ```
 
-3. از سایت:
-
-| | |
-|---|---|
-| 🏠 | [صفحه اصلی](https://cmplugin.ir/) |
-| ⚙️ | [شخصی‌سازی / Configure](https://cmplugin.ir/configure) |
-| 📖 | [راهنما](https://cmplugin.ir/guide) |
-
-در استریمیو کنار Install دکمهٔ **Configure** هم نمایش داده می‌شود.
-
-## 🇬🇧 Quick install
+5. نصب در اپ:
 
 ```text
-https://cmplugin.ir/manifest.json
+http://127.0.0.1:7000/manifest.json
 ```
 
-[Site](https://cmplugin.ir/) · [Configure](https://cmplugin.ir/configure) · [Guide](https://cmplugin.ir/guide)
+اگر از ایران به TMDB وصل نشوید (`ECONNRESET`)، استریم پروایدرها معمولاً همچنان کار می‌کند؛ برای پوستر بهتر است روی همان سیستم VPN/TUN باشد.
+
+### احترام
+
+با احترام به **آقای محبّی** و همهٔ کسانی که به این مسیر کمک کرده‌اند.
+
+### لایسنس
+
+ISC
 
 ---
 
-## امکانات
+<a id="english"></a>
 
-| | |
-|---|---|
-| 🇮🇷 | منابع ایرانی موازی |
-| 🖼️ | پروکسی تصویر TMDB (بدون VPN در ایران) |
-| 📝 | متای فارسی + fallback انگلیسی |
-| 🌐 | زبان افزونه، برچسب استریم، **نام کاتالوگ‌ها** (FA / EN) |
-| 📺 | ماهواره / IPTV Bridge — مستقل از «فقط استریم» |
-| 📚 | کاتالوگ ۱۰۱ / AIO / انیمه از env |
-| 🌱 | تورنت اختیاری |
-| ⚙️ | `/configure` → منیفست `/c/{cfg}/manifest.json` |
-| 🎛️ | فقط استریم · بدون متا · بدون کاتالوگ فیلم (IPTV جدا می‌ماند) |
+## English
 
----
+### What is this?
 
-## شخصی‌سازی
+**CinemaGraphy** is a **Stremio / Nuvio** addon focused on Iranian stream sources for movies and series.
 
-https://cmplugin.ir/configure
+### Features
 
-- پروایدرها، فقط‌استریم، زبان متا، **زبان افزونه (فارسی/English)**
-- با زبان انگلیسی: نام کاتالوگ‌ها (نتفلیکس، کرانچی‌رول، ماهواره، …) انگلیسی می‌مانند
-- با زبان فارسی: همان‌ها به برچسب‌های فارسی ترجمه می‌شوند
-- ماهواره: تیک جدا + لینک اختیاری (خالی = پیش‌فرض `iptvbridge.vercel.app`)
-- بارگذاری لینک `/c/...` قبلی برای ویرایش بدون وارد کردن دوبارهٔ کلیدها
+- Parallel multi-provider search
+- Persian meta/posters when TMDB is reachable
+- **Configure** page for a personal manifest
+- Runs on **local**, **Cloudflare Worker**, or Vercel
+- Bilingual guide on the site
 
----
+### Quick install
 
-## متغیرهای محیطی مهم
+| Item | URL |
+|------|-----|
+| Site | https://cmplugin.ir |
+| Manifest | https://cmplugin.ir/manifest.json |
+| Configure | https://cmplugin.ir/configure |
+| Guide | https://cmplugin.ir/guide |
 
-| متغیر | نقش |
-|--------|------|
-| `TMDB_API_KEY` | متا و پوستر |
-| `*_BASEURL` | پروایدرهای ایرانی |
-| `TORRENT_METEOR_MANIFEST_URL` | تورنت |
-| `CATALOG101_MANIFEST_URL` | کاتالوگ ۱۰۱ |
-| `CATALOG_AIO_MANIFEST_URL` | AIOCatalogs |
-| `CATALOG_ANIME_MANIFEST_URL` | انیمه |
-| `CATALOG_IPTVBRIDGE_MANIFEST_URL` | ماهواره (یا پیش‌فرض داخلی) |
-| `PUBLIC_BASE_URL` | پایهٔ پروکسی تصویر |
+### Local run
 
----
+```bash
+npm install
+npm start
+# manifest: http://127.0.0.1:7000/manifest.json
+```
 
-## نسخه ۲.۱.۵۱
+### Credits
 
-| نسخه | موضوع |
-|------|--------|
-| ۲.۱.۴۳ | Animex قسمت‌ها |
-| ۲.۱.۴۴ | دکمه Configure در استریمیو |
-| ۲.۱.۴۵–۴۸ | IPTV در Configure + استقلال از فقط‌استریم |
-| ۲.۱.۴۹ | هیرو لندینگ + ترتیب کرانچی‌رول |
-| ۲.۱.۵۰ | meta و stream ماهواره از IPTV Bridge |
-| **۲.۱.۵۱** | نام کاتالوگ‌ها (۱۰۱ / AIO / انیمه / ماهواره) بر اساس زبان افزونه |
+With respect to **Mr. Mohebbi** and all contributors.
 
----
-
-## دیپلوی
-
-Vercel · Cloudflare Workers · VPS / لوکال (`npm i` سپس start)
-
-منیفست عمومی: `cmplugin.ir` — نسخهٔ خصوصی تست را عمومی نکنید.
-
----
-
-## کانال
-
-- [t.me/cinemmagraphy](https://t.me/cinemmagraphy)
-- پشتیبانی: [t.me/nerdcow](https://t.me/nerdcow)
-- [GitHub](https://github.com/TheNerdCow/CinemaGraphy)
-
-با احترام به پروژهٔ پایهٔ استریمیو ایرانی (محبّی / ir-stremio).
-
-## License
+### License
 
 ISC
