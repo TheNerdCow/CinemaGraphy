@@ -178,6 +178,79 @@ function resolveListingFileUrl(directoryUrl, hrefOrName) {
     }
 }
 
+
+/**
+ * When CDN directory HTML is blocked (CF outside IR), still build direct .mkv URLs
+ * from ?dir= path — client in Iran plays them. Pattern observed on rdl*.hollowofthealley.space:
+ *   /{dir}/{Show Name} - 01.[SS][1080p][x265][MixFlixTop].mkv
+ */
+function synthesizeEpisodeFilesFromDir(directoryUrl, groupLabel, defaultSeason = 1, maxEpisodes = 24) {
+    const out = []
+    try {
+        const u = new URL(String(directoryUrl || ''))
+        let dir = u.searchParams.get('dir') || ''
+        // Also accept path-style /anime/2026/.../1080 x265/
+        if (!dir && /\/anime\//i.test(u.pathname)) {
+            dir = decodeURIComponent(u.pathname.replace(/^\//, '').replace(/\/$/, ''))
+        }
+        if (!dir) return out
+        // Unwrap animexstream redirect
+        if (/animexstream\.fun/i.test(u.hostname) && u.searchParams.get('url')) {
+            return synthesizeEpisodeFilesFromDir(u.searchParams.get('url'), groupLabel, defaultSeason, maxEpisodes)
+        }
+        const segments = dir.split('/').map((s) => s.replace(/\+/g, ' ').trim()).filter(Boolean)
+        if (segments.length < 2) return out
+        const qualityFolder = segments[segments.length - 1]
+        const showFolder = segments[segments.length - 2]
+        const quality = qualityFromText(groupLabel, qualityFolder) || qualityFromText(qualityFolder) || '1080p'
+        const qNum = String(quality).replace(/p$/i, '')
+        const origin = `${u.protocol}//${u.host}`
+        const dirPath = segments.map((s) => encodeURIComponent(s).replace(/%20/g, '%20')).join('/')
+        const n = Math.min(Math.max(Number(maxEpisodes) || 24, 1), 48)
+        const season = extractSeasonNumber(groupLabel, showFolder) ?? defaultSeason ?? 1
+        for (let ep = 1; ep <= n; ep++) {
+            const ee = String(ep).padStart(2, '0')
+            const names = [
+                `${showFolder} - ${ee}.[SS][${quality}][x265][MixFlixTop].mkv`,
+                `${showFolder} - ${ee}.[SS][${quality}][x265].mkv`,
+                `${showFolder} - ${ee}.[SS][${qNum}p][x265][MixFlixTop].mkv`,
+                `${showFolder} - ${ee} [SS] [${quality}] [x265].mkv`,
+                `${showFolder} - ${ee}.mkv`,
+            ]
+            // Prefer first pattern (most common on Animex CDN)
+            const fileName = names[0]
+            const url = `${origin}/${dirPath}/${encodeURIComponent(fileName).replace(/%20/g, '%20')}`
+            // encodeURIComponent encodes [ ] which CDN might need raw — build path carefully
+            const rawUrl = `${origin}/${segments.map((s) => encodeURIComponent(s)).join('/')}/${fileName.split('/').map((s) => encodeURIComponent(s)).join('/')}`
+            out.push({
+                url: rawUrl,
+                season,
+                episode: ep,
+                quality: quality || groupLabel || null,
+                size: null,
+                title: fileName,
+            })
+        }
+    } catch {
+        return out
+    }
+    return out
+}
+
+function guessMaxEpisodesFromHtml(html, title) {
+    const text = String(html || '')
+    // S1 EP12 / EP12 / 12 files / قسمت ۱۲
+    const m = text.match(/S\s*\d+\s*EP\s*(\d{1,3})\b/i)
+        || text.match(/\bEP\s*(\d{1,3})\b/i)
+        || text.match(/(\d{1,3})\s*files?\b/i)
+        || text.match(/قسمت\s*[:\s]*(\d{1,3})/)
+    if (m) {
+        const n = Number(m[1])
+        if (n >= 1 && n <= 48) return n
+    }
+    return 24
+}
+
 export default class Animex extends HtmlSource {
     key = 'animex'
 
@@ -442,10 +515,19 @@ export default class Animex extends HtmlSource {
                 }
             }
 
+            if (!files.length) {
+                const synthesized = synthesizeEpisodeFilesFromDir(
+                    directoryUrl, groupLabel, defaultSeason, 24,
+                )
+                if (synthesized.length) return synthesized
+            }
             return files
         } catch (error) {
             logAxiosError(error, this.logger, 'Animex directory listing fetch failed')
-            return files
+            const synthesized = synthesizeEpisodeFilesFromDir(
+                directoryUrl, groupLabel, defaultSeason, 24,
+            )
+            return synthesized.length ? synthesized : files
         }
     }
 
@@ -630,16 +712,32 @@ const links = []
                     if (fetched.length) {
                         links.push(...fetched)
                     } else if (token?.target) {
-                        // CDN blocked from non-IR IP — browser open for the user
-                        externalFallbacks.push({
-                            url: token.target,
-                            externalUrl: token.target,
-                            quality: groupLabel || null,
-                            title: `${groupLabel || 'دانلود'} — لیست فایل‌ها (مرورگر)`,
-                            season: seasonHint,
-                            episode: null,
-                            behaviorHints: {notWebReady: true},
-                        })
+                        // CDN list blocked from Worker IP → synthesize direct episode .mkv URLs
+                        // (client in Iran still plays). Prefer stream redirect host when present.
+                        const maxEp = guessMaxEpisodesFromHtml(rawHtml, title)
+                        let synthUrl = token.target
+                        // Prefer download/dir URL for path parsing
+                        if (/animexstream\.fun/i.test(synthUrl) && /[?&]url=/i.test(synthUrl)) {
+                            try {
+                                synthUrl = new URL(synthUrl).searchParams.get('url') || synthUrl
+                            } catch { /* keep */ }
+                        }
+                        const synthesized = synthesizeEpisodeFilesFromDir(
+                            synthUrl, groupLabel, seasonHint, maxEp,
+                        )
+                        if (synthesized.length) {
+                            links.push(...synthesized)
+                        } else {
+                            externalFallbacks.push({
+                                url: token.target,
+                                externalUrl: token.target,
+                                quality: groupLabel || null,
+                                title: `${groupLabel || 'دانلود'} — لیست فایل‌ها (مرورگر)`,
+                                season: seasonHint,
+                                episode: 1,
+                                behaviorHints: {notWebReady: true},
+                            })
+                        }
                     }
                 }
             }
@@ -693,11 +791,15 @@ const links = []
 
     getSeriesLinks(movieData, videoId) {
         const parts = String(videoId ?? '').split(':')
-        // videoId forms: tt123:1:2 or providerId:1:2
-        const season = Number(parts[parts.length - 2])
-        const episode = Number(parts[parts.length - 1])
+        // videoId forms: tt123:1:2 or providerId:1:2 or bare 1:2
+        let season = Number(parts[parts.length - 2])
+        let episode = Number(parts[parts.length - 1])
         if (!Number.isInteger(season) || !Number.isInteger(episode)) {
-            return []
+            // Play without episode list → offer first episode streams
+            const links = this.getMovieLinks(movieData)
+            const first = links.filter((item) => item.url && (Number(item.episode) === 1 || item.episode == null))
+            if (first.length) return first
+            return links.filter((item) => item.url).slice(0, 6)
         }
         const links = this.getMovieLinks(movieData)
 
