@@ -3,8 +3,8 @@
  * Install + Manifest copy, ranked companion addons, GitHub-only footer
  */
 const LOGO_FALLBACK = 'https://raw.githubusercontent.com/TheNerdCow/CinemaGraphy/refs/heads/master/logo.png'
-const PUBLIC_INSTALL = 'https://cinemagraphy.vercel.app/manifest.json'
-const PUBLIC_SITE = 'https://cinemagraphy.vercel.app'
+const PUBLIC_INSTALL = 'https://cmplugin.ir/manifest.json'
+const PUBLIC_SITE = 'https://cmplugin.ir'
 const GITHUB_URL = 'https://github.com/TheNerdCow/CinemaGraphy'
 const TELEGRAM_CHANNEL = 'https://t.me/cinemmagraphy'
 const TELEGRAM_SUPPORT = 'https://t.me/nerdcow'
@@ -59,7 +59,7 @@ export function renderLandingPage({
   manifestUrl = PUBLIC_INSTALL,
   installUrl,
   logoUrl = '/logo.png',
-  version = '3.2.8',
+  version = '3.2.16',
 } = {}) {
   const m = escapeHtml(manifestUrl || PUBLIC_INSTALL)
   const install = escapeHtml(
@@ -97,12 +97,12 @@ radial-gradient(ellipse 120% 80% at 50% 120%,#1a0a2e 0%,transparent 55%),
 radial-gradient(ellipse 60% 50% at 80% 20%,#0d1b3a 0%,transparent 50%),
 radial-gradient(ellipse 50% 40% at 15% 30%,#1a1025 0%,transparent 45%),
 linear-gradient(180deg,#050508,#0a0612 40%,#12081c)}
-.stars{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.7;
+.stars{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.25;
 background-image:radial-gradient(1.5px 1.5px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 30% 60%,#fff,transparent),radial-gradient(1.5px 1.5px at 50% 15%,#ffe9c4,transparent),radial-gradient(1px 1px at 70% 40%,#fff,transparent),radial-gradient(1px 1px at 85% 75%,#cde4ff,transparent),radial-gradient(1.5px 1.5px at 20% 80%,#fff,transparent),radial-gradient(1px 1px at 60% 90%,#fff,transparent),radial-gradient(1px 1px at 40% 35%,#ffe9c4,transparent),radial-gradient(1.5px 1.5px at 90% 10%,#fff,transparent),radial-gradient(1px 1px at 5% 50%,#fff,transparent)}
 .neb{position:fixed;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(80px);opacity:.28}
 .n1{top:-20%;right:-15%;width:70vw;height:70vw;background:radial-gradient(circle,#3d1a6e,transparent 70%)}
 .n2{bottom:-25%;left:-20%;width:70vw;height:70vw;background:radial-gradient(circle,#1a3a6e,transparent 70%)}
-.glass{background:var(--g);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);border:1px solid var(--gb);border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}
+.glass{background:var(--g);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--gb);border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}
 .rec-nuvio{border-color:rgba(126,182,255,.35)!important;box-shadow:0 0 0 1px rgba(126,182,255,.12),0 12px 40px rgba(20,40,90,.35),inset 0 1px 0 rgba(255,255,255,.1)!important}
 .rec-nuvio::before{content:'';position:absolute;inset:-40% -20%;background:radial-gradient(ellipse at 30% 0%,rgba(126,182,255,.18),transparent 55%);pointer-events:none}
 .rec-badge{position:absolute;top:12px;inset-inline-end:12px;font-size:.68rem;font-weight:800;padding:4px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(126,182,255,.35),rgba(232,160,74,.25));border:1px solid rgba(126,182,255,.4);color:#e8f0ff;letter-spacing:.02em;z-index:1}
@@ -111,10 +111,10 @@ background-image:radial-gradient(1.5px 1.5px at 10% 20%,#fff,transparent),radial
 .tile .hov .s-nuvio{background:linear-gradient(135deg,#6a9dff,#4a7ae0);color:#fff}
 
 .lang-en{display:none!important}html[lang=en] .lang-fa{display:none!important}html[lang=en] .lang-en{display:revert!important}html[lang=en] body{direction:ltr}/* block-level bilingual nodes stay block when visible */h1.lang-fa,h1.lang-en,p.lang-fa,p.lang-en,h2.lang-fa,h2.lang-en,section .sub.lang-fa,section .sub.lang-en{display:block}html[lang=en] h1.lang-en,html[lang=en] p.lang-en,html[lang=en] h2.lang-en,html[lang=en] section .sub.lang-en{display:block!important}html[lang=en] h1.lang-fa,html[lang=en] p.lang-fa,html[lang=en] h2.lang-fa,html[lang=en] section .sub.lang-fa{display:none!important}
-header{position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:14px 5vw;background:rgba(5,5,8,.45);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06)}
+header{position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:12px max(16px,4vw);background:rgba(5,5,8,.45);backdrop-filter:none;border-bottom:1px solid rgba(255,255,255,.06)}
 .brand{display:flex;gap:12px;align-items:center;color:var(--t);text-decoration:none;font-weight:800;font-size:1.15rem}
 .brand img{width:40px;height:40px;border-radius:12px;box-shadow:0 0 20px var(--gl)}
-.chip{border:1px solid var(--gb);background:var(--g);backdrop-filter:blur(12px);color:var(--t);border-radius:999px;padding:8px 14px;font-weight:600;font-size:.85rem}
+.chip{border:1px solid var(--gb);background:var(--g);backdrop-filter:blur(4px);color:var(--t);border-radius:999px;padding:8px 14px;font-weight:600;font-size:.85rem}
 .hero{max-width:1080px;margin:0 auto;padding:48px 5vw 32px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center}
 @media(max-width:860px){.hero{grid-template-columns:1fr;text-align:center}.vis{order:-1}.row{justify-content:center}.badge{align-self:center!important}.hero-copy{align-items:center}}
 .hero-copy{display:flex;flex-direction:column;align-items:flex-start;min-width:0;max-width:100%;position:relative;z-index:2}
@@ -135,8 +135,8 @@ header{position:sticky;top:0;z-index:50;display:flex;justify-content:space-betwe
 .copy{border:1px solid var(--gb);background:rgba(255,255,255,.1);color:var(--t);border-radius:10px;padding:10px 14px;font-weight:700;font-size:.8rem;white-space:nowrap}
 .copy.ok{color:#7dffb3;border-color:rgba(125,255,179,.4)}
 .vis{display:flex;justify-content:center}
-.stage{width:min(260px,65vw);animation:f 5s ease-in-out infinite;position:relative}
-@keyframes f{50%{transform:translateY(-14px)}}
+.stage{width:min(220px,55vw);position:relative}
+
 .stage::before{content:'';position:absolute;inset:-20%;background:radial-gradient(circle,var(--gl),transparent 65%);filter:blur(30px);opacity:.6;z-index:-1}
 .stage .gwrap{padding:20px;border-radius:28px}
 .stage img{width:100%;border-radius:20px;display:block}
@@ -170,7 +170,7 @@ footer{margin-top:12px;padding:32px 5vw 44px;border-top:1px solid rgba(255,255,2
 .prov .dot.off{background:#e07070;color:#e07070}
 .prov .dot.na{background:#6a6570;color:#6a6570}
 .prov .meta{font-size:.72rem;color:var(--m)}
-.prov .sk{height:72px;border-radius:16px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.1),rgba(255,255,255,.04));background-size:200% 100%;animation:sh 1.2s ease-in-out infinite}
+.prov .sk{height:72px;border-radius:16px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.1),rgba(255,255,255,.04));background-size:200% 100%;animation:none}
 @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 .rail{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
@@ -203,7 +203,7 @@ overscroll-behavior-x:contain;scrollbar-width:none!important;-ms-overflow-style:
 .tile:hover .hov,.tile:focus-within .hov{opacity:1}
 .tile .hov a,.tile .hov button{font-size:.65rem;font-weight:700;padding:5px 6px;border-radius:8px;border:0;text-decoration:none;text-align:center;font-family:inherit;cursor:pointer}
 .tile .hov .s{background:linear-gradient(135deg,#e8a04a,#d4783a);color:#1a0f05}
-.tile .hov .w{background:rgba(255,255,255,.15);color:#fff;backdrop-filter:blur(6px)}
+.tile .hov .w{background:rgba(255,255,255,.15);color:#fff;backdrop-filter:none}
 .tile .poster-wrap{position:relative;width:120px;height:180px;border-radius:12px;overflow:hidden}
 .tr-tile .hov{opacity:0}
 .tr-tile:hover .hov{opacity:1}
@@ -636,16 +636,16 @@ linear-gradient(180deg,#050508,#0a0612 40%,#12081c)}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.55;z-index:0;
 background-image:radial-gradient(1.5px 1.5px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 70% 40%,#fff,transparent),radial-gradient(1.5px 1.5px at 50% 15%,#ffe9c4,transparent)}
 a{color:var(--a2)}
-.wrap{position:relative;z-index:1;max-width:880px;width:100%;margin:0 auto;padding:20px 4.5vw 48px}
+.wrap{max-width:920px;margin:0 auto;position:relative;z-index:1;max-width:880px;width:100%;margin:0 auto;padding:20px 4.5vw 48px}
 header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;max-width:100%}
 .brand{display:flex;gap:10px;align-items:center;color:var(--t);text-decoration:none;font-weight:800;min-width:0}
 .brand span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brand img{width:36px;height:36px;border-radius:10px;flex-shrink:0;box-shadow:0 0 16px var(--gl)}
-.chip{border:1px solid var(--gb);background:var(--g);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--t);border-radius:999px;padding:8px 12px;text-decoration:none;font-weight:600;font-size:.82rem;font-family:inherit;cursor:pointer;white-space:nowrap}
+.chip{border:1px solid var(--gb);background:var(--g);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:var(--t);border-radius:999px;padding:8px 12px;text-decoration:none;font-weight:600;font-size:.82rem;font-family:inherit;cursor:pointer;white-space:nowrap}
 h1{font-size:clamp(1.25rem,5vw,1.75rem);font-weight:900;margin:8px 0;overflow-wrap:anywhere}
 h2{font-size:1.05rem;margin:0 0 10px;overflow-wrap:anywhere}
 .sub{color:var(--m);margin-bottom:14px;font-size:.92rem;overflow-wrap:anywhere}
-.glass{background:var(--g);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);border:1px solid var(--gb);border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)}
+.glass{background:var(--g);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--gb);border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:12px;font-weight:800;font-size:.88rem;text-decoration:none;border:none;cursor:pointer;font-family:inherit;max-width:100%}
 .bp{background:linear-gradient(135deg,#e8a04a,#d4783a);color:#1a0f05}
 .bp.ok{background:linear-gradient(135deg,#5dcea0,#3aa87a)}
@@ -684,7 +684,7 @@ h2{font-size:1.05rem;margin:0 0 10px;overflow-wrap:anywhere}
 
 export function renderConfigurePage({
   logoUrl = '/logo.png',
-  version = '3.2.8',
+  version = '3.2.16',
   origin = PUBLIC_SITE,
 } = {}) {
   const logo = escapeHtml(logoUrl || LOGO_FALLBACK)
@@ -1327,7 +1327,7 @@ export function renderConfigurePage({
 
 export function renderGuidePage({
   logoUrl = '/logo.png',
-  version = '3.2.8',
+  version = '3.2.16',
   manifestUrl = PUBLIC_INSTALL,
 } = {}) {
   const logo = escapeHtml(logoUrl || LOGO_FALLBACK)
@@ -1447,8 +1447,8 @@ details.faq summary{cursor:pointer;font-weight:700}
 <span class="lang-en">Add each variable (Env table). Mark keys/cookies as <b>Secret</b> so code deploys do not wipe them.</span>
 </div>
 <div class="step"><b>5</b>
-<span class="lang-fa">منیفست: <code>https://YOUR-NAME.workers.dev/manifest.json</code></span>
-<span class="lang-en">Manifest: <code>https://YOUR-NAME.workers.dev/manifest.json</code></span>
+<span class="lang-fa">منیفست: <code>https://cmplugin.ir/manifest.json</code></span>
+<span class="lang-en">Manifest: <code>https://cmplugin.ir/manifest.json</code></span>
 </div>
 </div>
 
