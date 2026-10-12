@@ -30,11 +30,15 @@ import {
     F2TURKISH_CATALOG_ID,
 } from './sources/f2turkish.js'
 import {
-    isAnimexCatalogEnabled,
-    animexCatalogManifestCatalogs,
-    animexCatalogList,
-    ANIMEX_CATALOG_ID,
-} from './sources/animex-catalog.js'
+    isFarsiplexEnabled,
+    farsiplexManifestCatalogs,
+    farsiplexListCatalog,
+    farsiplexGetMeta,
+    farsiplexGetStreams,
+    FARSIPLEX_PREFIX,
+    FARSIPLEX_MOVIE_CATALOG_ID,
+    FARSIPLEX_SERIES_CATALOG_ID,
+} from './sources/farsiplex.js'
 import Donyayeserial from './sources/donyayeserial.js'
 import F2Media, {DEFAULT_F2MEDIA_BASEURL} from './sources/f2media.js'
 import Peepboxtv from './sources/peepboxtv.js'
@@ -56,7 +60,7 @@ import {createRateLimitMiddleware} from './lib/rate-limit.js'
 import {registerAdminRoutes} from './lib/admin.js'
 
 export const ADDON_PREFIX = 'ip'
-export const ADDON_VERSION = '3.2.11'
+export const ADDON_VERSION = '3.2.20'
 
 // Re-export config helpers for tests / external consumers
 export {decodeAddonConfig, mergeEnv, DEFAULT_IPTV_BRIDGE_MANIFEST_URL, isConfigFlagOn}
@@ -122,6 +126,7 @@ export function createManifest(env = process.env) {
                 ADDON_PREFIX, 'tt', 'tmdb:', 'tmdb', 'kitsu:',
                 ...(iptvEnabled ? ['iptv:'] : []),
                 ...(namakadeEnabled ? [NAMAKADE_PREFIX] : []),
+                ...(isFarsiplexEnabled(env) ? [FARSIPLEX_PREFIX] : []),
             ],
         })
     } else if (iptvEnabled || namakadeEnabled) {
@@ -142,6 +147,7 @@ export function createManifest(env = process.env) {
             ADDON_PREFIX, 'tt', 'kitsu:', 'tmdb:', 'tmdb',
             ...(iptvEnabled ? ['iptv:'] : []),
             ...(namakadeEnabled ? [NAMAKADE_PREFIX] : []),
+                ...(isFarsiplexEnabled(env) ? [FARSIPLEX_PREFIX] : []),
         ],
     })
     if (!disableSubs) {
@@ -1166,30 +1172,21 @@ addon.get(/^\/api\/tmdb-image\/([^/]+)\/(.+)$/, async (req, res) => {
                     manifest.catalogs.splice(insertAt, 0, ...trCats)
                 }
             }
-            // Anime - Animex catalog: right after Turkish, before external anime / IPTV
-            if (isAnimexCatalogEnabled(activeEnv)) {
-                const axCats = animexCatalogManifestCatalogs(activeEnv, catalogLang).map((c) => ({
-                    ...c,
-                    // FORCE_AX_NAME
-                    name: String(catalogLang || 'fa').startsWith('en') ? 'animex' : 'انیمکس',
-                }))
-                const alreadyAx = manifest.catalogs.some((c) => c?.id === ANIMEX_CATALOG_ID)
-                if (!alreadyAx && axCats.length) {
-                    let insertAt = manifest.catalogs.findIndex((c) => c?.id === F2TURKISH_CATALOG_ID)
-                    if (insertAt >= 0) {
-                        insertAt += 1
-                    } else {
-                        insertAt = manifest.catalogs.findIndex((c) =>
-                            /anime|انیمه|myanimelist|kitsu|mal[_-]/i.test(`${c?.name || ''} ${c?.id || ''}`),
-                        )
-                        if (insertAt < 0) {
+            // Iranian content — FarsiPlex (after Turkish, before Animex)
+            if (isFarsiplexEnabled(activeEnv)) {
+                const fpCats = farsiplexManifestCatalogs(activeEnv, catalogLang)
+                for (const fp of fpCats) {
+                    if (!manifest.catalogs.some((c) => c?.id === fp.id)) {
+                        let insertAt = manifest.catalogs.findIndex((c) => c?.id === F2TURKISH_CATALOG_ID)
+                        if (insertAt >= 0) insertAt += 1
+                        else {
                             insertAt = manifest.catalogs.findIndex((c) =>
-                                /iptv|ماهواره|satellite|namakade/i.test(`${c?.name || ''} ${c?.id || ''}`),
+                                /anime|انیمه|myanimelist|kitsu|mal[_-]|animex/i.test(`${c?.name || ''} ${c?.id || ''}`),
                             )
+                            if (insertAt < 0) insertAt = manifest.catalogs.length
                         }
-                        if (insertAt < 0) insertAt = manifest.catalogs.length
+                        manifest.catalogs.splice(insertAt, 0, fp)
                     }
-                    manifest.catalogs.splice(insertAt, 0, ...axCats)
                 }
             }
             if (isNamakadeEnabled(activeEnv)) {
@@ -1214,14 +1211,16 @@ addon.get(/^\/api\/tmdb-image\/([^/]+)\/(.+)$/, async (req, res) => {
             const streamsOnly = isConfigFlagOn(activeEnv, 'STREAMS_ONLY')
             const disableCatalog = streamsOnly || isConfigFlagOn(activeEnv, 'DISABLE_CATALOG')
             // Isolated Namakade catalogs (no external proxy)
-            if (String(req.params.id || '') === ANIMEX_CATALOG_ID && isAnimexCatalogEnabled(activeEnv)) {
+            if (
+                (String(req.params.id || '') === FARSIPLEX_MOVIE_CATALOG_ID ||
+                    String(req.params.id || '') === FARSIPLEX_SERIES_CATALOG_ID) &&
+                isFarsiplexEnabled(activeEnv)
+            ) {
                 try {
-                    const extra = parseExtraArgs(req.params.extraArgs)
-                    const search = extra.search || (req.query || {}).search || ''
-                    const data = await animexCatalogList(req.params.id, search, activeEnv, axios)
-                    return res.status(200).type('json').set('cache-control', 'public, max-age=300').json(data)
-                } catch (error) {
-                    logger.error('animex catalog failed', {message: error?.message ?? String(error)})
+                    const data = await farsiplexListCatalog(req.params.id, search, activeEnv, axios)
+                    return res.status(200).type('json').json(data || {metas: []})
+                } catch (err) {
+                    logger.error?.({err: err?.message}, 'FarsiPlex catalog failed')
                     return res.status(200).type('json').json({metas: []})
                 }
             }
@@ -1347,6 +1346,14 @@ addon.get(/^\/api\/tmdb-image\/([^/]+)\/(.+)$/, async (req, res) => {
             req.params.id = decodeURIComponent(String(req.params.id || '')).trim()
 
             // IPTV / ماهواره — always independent of STREAMS_ONLY / DISABLE_META
+            if (String(req.params.id || '').startsWith(FARSIPLEX_PREFIX) && isFarsiplexEnabled(env)) {
+                try {
+                    const data = await farsiplexGetMeta(req.params.id, env, axios)
+                    if (data?.meta) return res.status(200).type('json').json(data)
+                } catch (err) {
+                    logger.error?.({err: err?.message}, 'FarsiPlex meta failed')
+                }
+            }
             if (String(req.params.id || '').startsWith(NAMAKADE_PREFIX) && isNamakadeEnabled(env)) {
                 try {
                     const pb = publicBase(req, env)
@@ -1637,6 +1644,16 @@ addon.get(/^\/api\/tmdb-image\/([^/]+)\/(.+)$/, async (req, res) => {
             }
 
             // Namakade Iranian content — independent of other providers
+            if (String(id || '').startsWith(FARSIPLEX_PREFIX) && isFarsiplexEnabled(env)) {
+                try {
+                    const data = await farsiplexGetStreams(id, env, axios)
+                    if (data?.streams?.length) {
+                        return res.status(200).type('json').json(data)
+                    }
+                } catch (err) {
+                    logger.error?.({err: err?.message}, 'FarsiPlex stream failed')
+                }
+            }
             if (String(id || '').startsWith(NAMAKADE_PREFIX) && isNamakadeEnabled(env)) {
                 try {
                     const data = await namakadeGetStreams(id, env, axios)

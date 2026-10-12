@@ -949,15 +949,15 @@ export function renderConfigurePage({
 </div>
 
 <div class="glass" style="padding:16px;margin-bottom:16px">
-<h2 class="lang-fa" style="margin-top:0">انیمه - انیمکس</h2>
-<h2 class="lang-en" style="margin-top:0">Anime - Animex</h2>
+<h2 class="lang-fa" style="margin-top:0">فیلم و سریال ایرانی (FarsiPlex)</h2>
+<h2 class="lang-en" style="margin-top:0">Iranian Movies & Series (FarsiPlex)</h2>
 <label class="tog" style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;cursor:pointer">
-<input type="checkbox" id="animexCatalogOn" style="width:18px;height:18px;margin-top:3px;accent-color:#e8a04a;flex-shrink:0"/>
+<input type="checkbox" id="farsiplexOn" style="width:18px;height:18px;margin-top:3px;accent-color:#e8a04a;flex-shrink:0"/>
 <div>
-<b class="lang-fa">فعال‌سازی کاتالوگ انیمه - انیمکس</b>
-<span class="hint lang-fa" style="display:block;font-size:.82rem;color:var(--m);font-weight:500;margin-top:4px">زیر «ترکی» و بالای کاتالوگ انیمهٔ خارجی. متا از TMDB؛ پوستر پشتیبان از انیمکس.</span>
-<b class="lang-en">Enable Anime - Animex catalog</b>
-<span class="hint lang-en" style="display:block;font-size:.82rem;color:var(--m);font-weight:500;margin-top:4px">Below Turkish, above external anime catalogs. TMDB meta; poster fallback from Animex.</span>
+<b class="lang-fa">فعال‌سازی کاتالوگ فیلم و سریال ایرانی</b>
+<span class="hint lang-fa" style="display:block;font-size:.82rem;color:var(--m);font-weight:500;margin-top:4px">منبع FarsiPlex با پخش مستقیم MP4 از CDN فارسی‌لند. بعد از «ترکی» در لیست کاتالوگ.</span>
+<b class="lang-en">Enable Iranian movie & series catalogs</b>
+<span class="hint lang-en" style="display:block;font-size:.82rem;color:var(--m);font-weight:500;margin-top:4px">FarsiPlex with direct MP4 from FarsiLand CDN. Listed after Turkish.</span>
 </div>
 </label>
 </div>
@@ -1082,14 +1082,30 @@ export function renderConfigurePage({
     for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].checked) on.push(nodes[i].getAttribute('data-prov'));
     }
-    if (on.length) o.ENABLED_PROVIDERS = on.join(',');
+    // Always set — empty means no provider catalogs in personal manifest
+    o.ENABLED_PROVIDERS = on.length ? on.join(',') : 'none';
 
     var fields = document.querySelectorAll('[data-k]');
+    var catalogKeys = {
+      CATALOG101_MANIFEST_URL: 1,
+      CATALOG_AIO_MANIFEST_URL: 1,
+      CATALOG_AIOCATALOGS_MANIFEST_URL: 1,
+      CATALOG_ANIME_MANIFEST_URL: 1,
+      CATALOG_TMDB_MANIFEST_URL: 1,
+      EXTERNAL_CATALOG_MANIFEST_URLS: 1,
+      TORRENT_METEOR_MANIFEST_URL: 1
+    };
     for (var j = 0; j < fields.length; j++) {
       var key = fields[j].getAttribute('data-k');
       var val = (fields[j].value || '').trim();
-      if (key && val) o[key] = val;
+      if (!key) continue;
+      if (val) o[key] = val;
+      else if (catalogKeys[key]) o[key] = 'off';
     }
+    // Ensure external platform catalogs are off unless user pasted a URL
+    Object.keys(catalogKeys).forEach(function (k) {
+      if (!o[k]) o[k] = 'off';
+    });
 
     function flag(id, prop) {
       var el = document.getElementById(id);
@@ -1108,8 +1124,8 @@ export function renderConfigurePage({
     if (iptv) o.ENABLE_IPTV = iptv.checked ? '1' : '0';
     var f2t = document.getElementById('f2turkishOn');
     if (f2t) o.ENABLE_F2_TURKISH = f2t.checked ? '1' : '0';
-    var axc = document.getElementById('animexCatalogOn');
-    if (axc) o.ENABLE_ANIMEX_CATALOG = axc.checked ? '1' : '0';
+    var fpx = document.getElementById('farsiplexOn');
+    if (fpx) o.ENABLE_FARSIPLEX = fpx.checked ? '1' : '0';
 
     var metaR = document.querySelector('input[name="metaLang"]:checked');
     if (metaR && metaR.value === 'en') o.META_LANG = 'en';
@@ -1144,8 +1160,8 @@ export function renderConfigurePage({
     if (iptvEl) iptvEl.checked = o.ENABLE_IPTV === '1' || o.ENABLE_IPTV === 'true' || Boolean(o.CATALOG_IPTVBRIDGE_MANIFEST_URL);
     var f2tEl = document.getElementById('f2turkishOn');
     if (f2tEl) f2tEl.checked = o.ENABLE_F2_TURKISH === '1' || o.ENABLE_F2_TURKISH === 'true';
-    var axcEl = document.getElementById('animexCatalogOn');
-    if (axcEl) axcEl.checked = o.ENABLE_ANIMEX_CATALOG !== '0' && o.ENABLE_ANIMEX_CATALOG !== 'false';
+    var fpxEl = document.getElementById('farsiplexOn');
+    if (fpxEl) fpxEl.checked = o.ENABLE_FARSIPLEX === '1' || o.ENABLE_FARSIPLEX === 'true';
     var metaVal = o.META_LANG === 'en' ? 'en' : 'fa';
     document.querySelectorAll('input[name="metaLang"]').forEach(function (r) { r.checked = r.value === metaVal; });
     var addVal = o.ADDON_LANG === 'en' ? 'en' : 'fa';
@@ -1224,7 +1240,7 @@ export function renderConfigurePage({
     if (!el || el.nodeType !== 1) return false;
     if (el.hasAttribute('data-prov') || el.hasAttribute('data-k')) return true;
     var id = el.id || '';
-    if (id === 'optStreamsOnly' || id === 'optDisableMeta' || id === 'optDisableCatalog' || id === 'optDisableSubs' || id === 'optIptv' || id === 'f2turkishOn' || id === 'animexCatalogOn') return true;
+    if (id === 'optStreamsOnly' || id === 'optDisableMeta' || id === 'optDisableCatalog' || id === 'optDisableSubs' || id === 'optIptv' || id === 'f2turkishOn' || id === 'farsiplexOn') return true;
     if (el.name === 'metaLang' || el.name === 'addonLang') return true;
     return false;
   }
@@ -1282,7 +1298,7 @@ export function renderConfigurePage({
       var el = document.getElementById(id);
       if (el) { el.checked = false; el.disabled = false; }
     });
-    var axc = document.getElementById('animexCatalogOn');
+    var axc = document.getElementById('farsiplexOn');
     if (axc) axc.checked = true;
     refresh();
     setMsg(root.lang === 'fa' ? 'حافظه پاک شد.' : 'Local save cleared.', true);
@@ -1313,7 +1329,7 @@ export function renderConfigurePage({
     var el = document.getElementById(id);
     if (el) { el.checked = false; el.disabled = false; }
   });
-  var axc0 = document.getElementById('animexCatalogOn');
+  var axc0 = document.getElementById('farsiplexOn');
   if (axc0) axc0.checked = false;
   document.querySelectorAll('[data-k]').forEach(function (inp) { inp.value = ''; });
   var loadUrl = document.getElementById('loadUrl');
