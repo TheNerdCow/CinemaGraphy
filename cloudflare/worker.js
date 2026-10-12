@@ -14,11 +14,15 @@ import {
     F2TURKISH_CATALOG_ID,
 } from '../sources/f2turkish.js'
 import {
-    isAnimexCatalogEnabled,
-    animexCatalogManifestCatalogs,
-    animexCatalogList,
-    ANIMEX_CATALOG_ID,
-} from '../sources/animex-catalog.js'
+    isFarsiplexEnabled,
+    farsiplexManifestCatalogs,
+    farsiplexListCatalog,
+    farsiplexGetMeta,
+    farsiplexGetStreams,
+    FARSIPLEX_PREFIX,
+    FARSIPLEX_MOVIE_CATALOG_ID,
+    FARSIPLEX_SERIES_CATALOG_ID,
+} from '../sources/farsiplex.js'
 import {ID_SEPARATOR, METADATA_SOURCE} from '../sources/source.js'
 import {findExternalMetaSource, findExternalStreamSource, formatStreamTitle, getExternalCatalogSources, getKitsuTitle, getTMDBMetaFa, getTMDBMetaByTmdbId, getTMDBDetails, getTMDBTitle, getLandingTmdbCatalogs, getTorrentStreams, modifyUrls, proxyExternalCatalog, proxyExternalMeta, proxyExternalStream, proxySubtitles, translateCatalogName, buildOrderedExternalCatalogs, classifyExternalCatalogSource, rewriteTmdbImageUrls, parseTmdbImageProxyPath, enrichMetaWithFaTmdb, enrichCatalogMetasWithoutRpdb, setMetaLangPref, setUiLangPref} from '../utils.js'
 import {landingUrlsFromRequest, renderLandingPage, renderConfigurePage, renderGuidePage} from '../landing.js'
@@ -27,7 +31,7 @@ import {createWorkerProxyConfig, handleProxyRequest} from './proxy.js'
 import {decodeAddonConfig, mergeEnv} from './config.js'
 
 const ADDON_PREFIX = 'ip'
-const ADDON_VERSION = '3.2.17'
+const ADDON_VERSION = '3.2.20'
 
 const CATALOGS = [
     {key: 'f2media', name: 'F2Media', catalogType: 'movies'},
@@ -78,9 +82,9 @@ export function createWorkerManifest(env = {}) {
         }),
         resources: [
             'catalog',
-            {name: 'meta', types: ['series', 'movie', 'tv'], idPrefixes: [ADDON_PREFIX, 'tt', 'tmdb:', 'kitsu:']},
-            {name: 'stream', types: ['series', 'movie', 'tv'], idPrefixes: [ADDON_PREFIX, 'tt', 'kitsu:', 'tmdb:']},
-            {name: 'subtitles', types: ['series', 'movie'], idPrefixes: [ADDON_PREFIX, 'tt', 'kitsu:', 'tmdb:']},
+            {name: 'meta', types: ['series', 'movie', 'tv'], idPrefixes: [ADDON_PREFIX, 'tt', 'tmdb:', 'kitsu:', FARSIPLEX_PREFIX]},
+            {name: 'stream', types: ['series', 'movie', 'tv'], idPrefixes: [ADDON_PREFIX, 'tt', 'kitsu:', 'tmdb:', FARSIPLEX_PREFIX]},
+            {name: 'subtitles', types: ['series', 'movie'], idPrefixes: [ADDON_PREFIX, 'tt', 'kitsu:', 'tmdb:', FARSIPLEX_PREFIX]},
         ],
         types: ['movie', 'series', 'tv'],
         behaviorHints: {
@@ -247,13 +251,22 @@ async function getSubtitle(type, imdbId, httpClient) {
 
 async function catalogResponse(route, providers, logger, env = {}, httpClient) {
     try {
-        if (route.id === ANIMEX_CATALOG_ID && isAnimexCatalogEnabled(env)) {
+        {
             const extra = Object.fromEntries(new URLSearchParams(route.extraArgs || ''))
-            return json(await animexCatalogList(route.id, extra.search || '', env, httpClient) || {metas: []})
-        }
-        if (route.id === F2TURKISH_CATALOG_ID && isF2TurkishEnabled(env)) {
-            const extra = Object.fromEntries(new URLSearchParams(route.extraArgs || ''))
-            return json(await f2turkishListCatalog(route.id, extra.search || '', env, httpClient) || {metas: []})
+            if (
+                (route.id === FARSIPLEX_MOVIE_CATALOG_ID || route.id === FARSIPLEX_SERIES_CATALOG_ID) &&
+                isFarsiplexEnabled(env)
+            ) {
+                try {
+                    return json(await farsiplexListCatalog(route.id, extra.search || '', env, httpClient) || {metas: []})
+                } catch (error) {
+                    logResourceError(logger, 'FarsiPlex catalog failed', error)
+                    return json({metas: []})
+                }
+            }
+            if (route.id === F2TURKISH_CATALOG_ID && isF2TurkishEnabled(env)) {
+                return json(await f2turkishListCatalog(route.id, extra.search || '', env, httpClient) || {metas: []})
+            }
         }
         const externalSources = await getExternalCatalogSources(env, httpClient, logger)
         const externalSource = externalSources.find((source) => source.catalogIds.has(route.id))
@@ -306,6 +319,15 @@ async function metaResponse(route, providers, services, env, requestUrl, logger,
     try {
         setMetaLangPref(String(env.META_LANG || env.ADDON_LANG || 'fa'))
         setUiLangPref(String(env.ADDON_LANG || 'fa'))
+
+        if (String(route.id || '').startsWith(FARSIPLEX_PREFIX) && isFarsiplexEnabled(env)) {
+            try {
+                const data = await farsiplexGetMeta(route.id, env, httpClient)
+                if (data?.meta) return json(data)
+            } catch (error) {
+                logResourceError(logger, 'FarsiPlex meta failed', error)
+            }
+        }
 
         if (route.id.startsWith('tt') && env.TMDB_API_KEY) {
             const tmdbMeta = await getTMDBMetaFa(route.type, route.id, httpClient, env.TMDB_API_KEY, logger)
@@ -700,6 +722,15 @@ async function tmdbStreamResponse(type, id, providers, httpClient, apiKey, env, 
 
 async function streamResponse(route, providers, services, logger, httpClient, env, request = null) {
     try {
+        if (String(route.id || '').startsWith(FARSIPLEX_PREFIX) && isFarsiplexEnabled(env)) {
+            try {
+                const data = await farsiplexGetStreams(route.id, env, httpClient)
+                if (data?.streams?.length) return json(data)
+            } catch (error) {
+                logResourceError(logger, 'FarsiPlex stream failed', error)
+            }
+        }
+
         if (!['movie', 'series', 'tv'].includes(route.type)) return json({streams: []})
         // Edge Cache API — second request for same episode is near-instant (like warm Vercel)
         try {
@@ -822,13 +853,13 @@ export function createWorkerHandler(options = {}) {
                             }
                         }
                     }
-                    if (isAnimexCatalogEnabled(env)) {
-                        const lang = String(env.ADDON_LANG || 'fa').toLowerCase().startsWith('en') ? 'en' : 'fa'
-                        for (const c of animexCatalogManifestCatalogs(env, lang).map((x) => ({
-                            ...x,
-                            // FORCE_AX_NAME
-                            name: lang === 'en' ? 'animex' : 'انیمکس',
-                        }))) {
+                } catch (e) {
+                    logger.warn?.('F2Turkish manifest attach failed', {message: e?.message})
+                }
+                try {
+                    if (isFarsiplexEnabled(env)) {
+                        const lang = String(env.ADDON_LANG || env.CATALOG_LANG || 'fa').toLowerCase().startsWith('en') ? 'en' : 'fa'
+                        for (const c of farsiplexManifestCatalogs(env, lang)) {
                             if (!manifest.catalogs.some((x) => x.id === c.id)) {
                                 let insertAt = manifest.catalogs.findIndex((x) => x.id === F2TURKISH_CATALOG_ID)
                                 if (insertAt >= 0) insertAt += 1
@@ -841,7 +872,7 @@ export function createWorkerHandler(options = {}) {
                         }
                     }
                 } catch (e) {
-                    logger.warn?.('F2Turkish manifest attach failed', {message: e?.message})
+                    logger.warn?.('FarsiPlex manifest attach failed', {message: e?.message})
                 }
                 response = json(manifest)
             } else if (url.pathname === '/tmdb/landing.json') {
